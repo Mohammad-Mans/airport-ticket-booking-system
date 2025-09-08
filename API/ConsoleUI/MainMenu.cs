@@ -1,8 +1,8 @@
-using ATBS.API.ConsoleUI;
+using ATBS.Domain.Interfaces;
 
 namespace ATBS.API.ConsoleUI;
 
-public class MainMenu : BaseMenu
+public class MainMenu(IPassengerService passengerService) : BaseMenu
 {
     protected override void DisplayMenu()
     {
@@ -17,7 +17,7 @@ public class MainMenu : BaseMenu
         switch (choice)
         {
             case "1":
-                var passengerMenu = new PassengerMenu();
+                var passengerMenu = new PassengerMenu(passengerService);
                 await passengerMenu.RunAsync();
                 return true;
             case "2":
