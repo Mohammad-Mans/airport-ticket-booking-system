@@ -1,6 +1,9 @@
+using System.Globalization;
+using ATBS.Domain.Interfaces;
+
 namespace ATBS.API.ConsoleUI;
 
-public class PassengerMenu : BaseMenu
+public class PassengerMenu(IPassengerService passengerService) : BaseMenu
 {
     private Guid? _currentPassengerId;
 
@@ -10,7 +13,8 @@ public class PassengerMenu : BaseMenu
 
         if (_currentPassengerId == null)
         {
-            Console.WriteLine("1. Login/Register");
+            Console.WriteLine("1. Login");
+            Console.WriteLine("2. Register");
             Console.WriteLine("0. Back to Main Menu");
         }
         else
@@ -21,7 +25,6 @@ public class PassengerMenu : BaseMenu
             Console.WriteLine("4. Cancel Booking");
             Console.WriteLine("5. Modify Booking");
             Console.WriteLine("6. Logout");
-            Console.WriteLine("0. Back to Main Menu");
         }
     }
 
@@ -41,14 +44,15 @@ public class PassengerMenu : BaseMenu
     {
         switch (choice)
         {
-            // case "1":
-            //     await LoginOrRegisterAsync();
-            //     return true;
-            // default:
-            //     return false;
+            case "1":
+                await LoginAsync();
+                return true;
+            case "2":
+                await RegisterAsync();
+                return true;
+            default:
+                return false;
         }
-
-        return true;
     }
 
     private async Task<bool> HandlePassengerChoiceAsync(string choice)
@@ -70,15 +74,90 @@ public class PassengerMenu : BaseMenu
             // case "5":
             //     await ModifyBookingAsync();
             //     return true;
-            // case "6":
-            //     _currentPassengerId = null;
-            //     Console.WriteLine("Logged out successfully.");
-            //     WaitForKeyPress();
-            //     return true;
-            // default:
-            //     return false;
+            case "6":
+                _currentPassengerId = null;
+                Console.WriteLine("Logged out successfully.");
+                WaitForKeyPress();
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private async Task LoginAsync()
+    {
+        var first = PromptNonEmpty("\nFirst name: ");
+        var last = PromptNonEmpty("Last name: ");
+
+        try
+        {
+            var passenger = await passengerService.GetByNameAsync(first, last);
+
+            if (passenger == null)
+            {
+                Console.WriteLine("\nUser doesn't exist!");
+            }
+            else
+            {
+                _currentPassengerId = passenger.Id;
+                Console.WriteLine($"\nWelcome back, {passenger.FirstName} {passenger.LastName}!");
+                Console.WriteLine($"Your Balance: {passenger.Balance:F2}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"\nLogin failed: {ex.Message}");
         }
 
-        return true;
+        WaitForKeyPress();
+    }
+
+    private async Task RegisterAsync()
+    {
+        var first = PromptNonEmpty("\nFirst name: ");
+        var last = PromptNonEmpty("Last name: ");
+        var balance = PromptDecimal("Initial balance (default 0): ", defaultValue: 0m);
+
+        try
+        {
+            var passenger = await passengerService.AddPassengerAsync(first, last, balance);
+            _currentPassengerId = passenger.Id;
+
+            Console.WriteLine($"\nWelcome, {passenger.FirstName} {passenger.LastName}!");
+            Console.WriteLine($"You have been registered successfully!");
+            Console.WriteLine($"Your Balance: {passenger.Balance:F2}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"\nRegistration failed: {ex.Message}");
+        }
+
+        WaitForKeyPress();
+    }
+
+    private static string PromptNonEmpty(string label)
+    {
+        while (true)
+        {
+            Console.Write(label);
+            var input = Console.ReadLine();
+            if (!string.IsNullOrWhiteSpace(input)) return input;
+            Console.WriteLine("This field is required. Please try again.");
+        }
+    }
+
+    // Prompts the user for a number and parses it as decimal.
+    // Tries CurrentCulture first, then InvariantCulture (so "23,99" and "23.99" both work).
+    // Returns defaultValue if input is empty or invalid.
+    private static decimal PromptDecimal(string label, decimal defaultValue)
+    {
+        Console.Write(label);
+        var enteredValue = Console.ReadLine();
+
+        if (decimal.TryParse(enteredValue, NumberStyles.Number, CultureInfo.CurrentCulture, out var d) ||
+            decimal.TryParse(enteredValue, NumberStyles.Number, CultureInfo.InvariantCulture, out d))
+            return d;
+
+        return defaultValue;
     }
 }
