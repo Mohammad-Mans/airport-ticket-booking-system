@@ -2,7 +2,7 @@ using ATBS.Domain.Interfaces;
 
 namespace ATBS.API.ConsoleUI;
 
-public class MainMenu(IPassengerService passengerService) : BaseMenu
+public class MainMenu(IPassengerService passengerService, IFlightService flightService) : BaseMenu
 {
     protected override void DisplayMenu()
     {
@@ -21,7 +21,7 @@ public class MainMenu(IPassengerService passengerService) : BaseMenu
                 await passengerMenu.RunAsync();
                 return true;
             case "2":
-                var managerMenu = new ManagerMenu();
+                var managerMenu = new ManagerMenu(flightService);
                 await managerMenu.RunAsync();
                 return true;
             default:

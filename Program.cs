@@ -10,9 +10,13 @@ class Program
     static async Task Main(string[] args)
     {
         var passengerRepository = new PassengerRepository(FilePaths.PassengerFilePath);
-        var passengerService = new PassengerService(passengerRepository);
+        var flightRepository = new FlightRepository(FilePaths.FlightFilePath);
+        var flightClassRepository = new FlightClassRepository(FilePaths.FlightClassFilePath);
 
-        var mainMenu = new MainMenu(passengerService);
+        var passengerService = new PassengerService(passengerRepository);
+        var flightService = new FlightService(flightRepository, flightClassRepository);
+
+        var mainMenu = new MainMenu(passengerService, flightService);
         await mainMenu.RunAsync();
     }
 }
