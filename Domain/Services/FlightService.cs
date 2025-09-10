@@ -40,11 +40,14 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
                 var flightVals = ParseFlightCore(lineData);
                 flightVals = Deduplicate(byKey, flightVals);
 
-                var classVals = ParseClassValues(lineData);
-                
-                AddClassRows(newClasses, flightVals.Id, classVals);
-                newFlights.Add(flightVals);
+                var classVals = ParseClassValues(flightVals.Id, lineData).ToList();
+                var hasEconomy = classVals.Any(c => c.Class == TravelClass.Economy);
+                if (!hasEconomy)
+                    throw new InvalidOperationException(
+                        "Economy class must be provided (price and capacity). Other classes are optional.");
 
+                newClasses.AddRange(classVals);
+                newFlights.Add(flightVals);
                 result.RowsProcessed++;
             }
             catch (Exception ex)
@@ -97,18 +100,34 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
         };
     }
 
-    private static (decimal ecoPrice, decimal busPrice, decimal firstPrice,
-        int ecoCap, int busCap, int firstCap) ParseClassValues(string[] p)
+    private static IEnumerable<FlightClass> ParseClassValues(Guid flightId, string[] p)
     {
-        var ecoPrice = ParseDecimalNonNegative(p[7], "EconomyPrice");
-        var busPrice = ParseDecimalNonNegative(p[8], "BusinessPrice");
-        var firstPrice = ParseDecimalNonNegative(p[9], "FirstPrice");
+        var classes = new List<FlightClass>();
 
-        var ecoCap = ParseIntNonNegative(p[10], "EconomyCapacity");
-        var busCap = ParseIntNonNegative(p[11], "BusinessCapacity");
-        var firstCap = ParseIntNonNegative(p[12], "FirstCapacity");
+        TryAddClass(classes, flightId, TravelClass.Economy, p[7], p[10]);
+        TryAddClass(classes, flightId, TravelClass.Business, p[8], p[11]);
+        TryAddClass(classes, flightId, TravelClass.First, p[9], p[12]);
 
-        return (ecoPrice, busPrice, firstPrice, ecoCap, busCap, firstCap);
+        return classes;
+    }
+
+    private static void TryAddClass(List<FlightClass> classes, Guid flightId, TravelClass cls, string priceStr,
+        string capStr)
+    {
+        if (string.IsNullOrWhiteSpace(priceStr) || string.IsNullOrWhiteSpace(capStr))
+            return;
+
+        var price = ParseDecimalNonNegative(priceStr, $"{cls}Price");
+        var cap = ParseIntNonNegative(capStr, $"{cls}Capacity");
+
+        classes.Add(new FlightClass
+        {
+            FlightId = flightId,
+            Class = cls,
+            Price = price,
+            CapacityTotal = cap,
+            SeatsAvailable = cap
+        });
     }
 
     private static Flight Deduplicate(Dictionary<string, Flight> byKey, Flight incoming)
@@ -133,39 +152,7 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
         return incoming;
     }
 
-    private static void AddClassRows(
-        List<FlightClass> allClasses,
-        Guid flightId,
-        (decimal ecoPrice, decimal busPrice, decimal firstPrice, int ecoCap, int busCap, int firstCap) v)
-    {
-        allClasses.Add(new FlightClass
-        {
-            FlightId = flightId,
-            Class = TravelClass.Economy,
-            Price = v.ecoPrice,
-            CapacityTotal = v.ecoCap,
-            SeatsAvailable = v.ecoCap
-        });
-        allClasses.Add(new FlightClass
-        {
-            FlightId = flightId,
-            Class = TravelClass.Business,
-            Price = v.busPrice,
-            CapacityTotal = v.busCap,
-            SeatsAvailable = v.busCap
-        });
-        allClasses.Add(new FlightClass
-        {
-            FlightId = flightId,
-            Class = TravelClass.First,
-            Price = v.firstPrice,
-            CapacityTotal = v.firstCap,
-            SeatsAvailable = v.firstCap
-        });
-    }
-
-    private async Task AddOrUpdateFlightsAsync(
-        List<Flight> flights, IReadOnlyList<Flight> existingFlights)
+    private async Task AddOrUpdateFlightsAsync(List<Flight> flights, IReadOnlyList<Flight> existingFlights)
     {
         foreach (var f in flights)
         {
