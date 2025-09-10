@@ -1,3 +1,5 @@
+using ATBS.API.Validation;
+using ATBS.Domain.Entities;
 using ATBS.Domain.Interfaces;
 using ATBS.Utils;
 
@@ -41,6 +43,12 @@ public class ManagerMenu(IFlightService flightService) : BaseMenu
                 Console.WriteLine("\nErrors:");
                 foreach (var (row, err) in result.Errors)
                     Console.WriteLine($"Row {row}: {err}");
+
+                DocConstraintsPrinter.PrintFor(
+                    title: "Flight Import Fields",
+                    typeof(Flight),
+                    typeof(FlightClass)
+                );
             }
         }
         catch (Exception ex)
