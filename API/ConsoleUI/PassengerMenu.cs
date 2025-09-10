@@ -1,9 +1,10 @@
 using System.Globalization;
+using ATBS.Domain.Enums;
 using ATBS.Domain.Interfaces;
 
 namespace ATBS.API.ConsoleUI;
 
-public class PassengerMenu(IPassengerService passengerService) : BaseMenu
+public class PassengerMenu(IPassengerService passengerService, IFlightService flightService) : BaseMenu
 {
     private Guid? _currentPassengerId;
 
@@ -59,9 +60,9 @@ public class PassengerMenu(IPassengerService passengerService) : BaseMenu
     {
         switch (choice)
         {
-            // case "1":
-            //     await SearchFlightsAsync();
-            //     return true;
+            case "1":
+                await SearchFlightsAsync();
+                return true;
             // case "2":
             //     await BookFlightAsync();
             //     return true;
@@ -133,6 +134,103 @@ public class PassengerMenu(IPassengerService passengerService) : BaseMenu
         }
 
         WaitForKeyPress();
+    }
+
+    private async Task SearchFlightsAsync()
+    {
+        Console.WriteLine();
+
+        Console.WriteLine("\nEnter search filters (leave any field blank to skip):");
+        var q = new FlightSearchQuery
+        {
+            DepartureCountry = PromptOptional("Departure country: "),
+            DestinationCountry = PromptOptional("Destination country: "),
+            DepartureAirport = PromptOptional("Departure airport: "),
+            ArrivalAirport = PromptOptional("Arrival airport: "),
+            DepartureDateUtc = PromptDateOnlyOptional("Departure date (dd-MM-yyyy): "),
+            Class = PromptClassOptional("Class (Economy/Business/First): "),
+            MaxPrice = PromptDecimalOptional("Max price: "),
+            OnlyWithSeats = true
+        };
+
+        var options = await flightService.SearchAsync(q);
+
+        Console.WriteLine();
+        if (options.Count == 0)
+        {
+            Console.WriteLine("No flights match your criteria.");
+            WaitForKeyPress();
+            return;
+        }
+
+        int i = 1;
+        foreach (var o in options)
+        {
+            Console.WriteLine(
+                $"{i++}. {o.Flight.FlightNumber} | " +
+                $"{o.Flight.DepartureCountry}:{o.Flight.DepartureAirport} -> {o.Flight.DestinationCountry}:{o.Flight.ArrivalAirport} | " +
+                $"{o.Flight.DepartureDate:dd-MM-yyyy HH:mm} | " +
+                $"{o.Class} | {o.Price:F2} | Seats: {o.SeatsAvailable}");
+        }
+
+        WaitForKeyPress();
+    }
+
+    private static string? PromptOptional(string label)
+    {
+        Console.Write(label);
+        var s = Console.ReadLine();
+        return string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+    }
+
+    private static DateOnly? PromptDateOnlyOptional(string label)
+    {
+        Console.Write(label);
+        var s = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(s)) return null;
+
+        if (DateOnly.TryParseExact(s.Trim(), "d-M-yyyy",
+                CultureInfo.InvariantCulture, DateTimeStyles.None, out var d))
+            return d;
+
+        Console.WriteLine("Invalid date format (expected dd-MM-yyyy). Ignoring.");
+        return null;
+    }
+
+    private static TravelClass? PromptClassOptional(string label)
+    {
+        Console.Write(label);
+        var s = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(s)) return null;
+
+        s = s.Trim().ToLowerInvariant();
+        return s switch
+        {
+            "e" or "economy" => TravelClass.Economy,
+            "b" or "business" => TravelClass.Business,
+            "f" or "first" => TravelClass.First,
+            _ => PrintAndReturnNull()
+        };
+
+        static TravelClass? PrintAndReturnNull()
+        {
+            Console.WriteLine("Unknown class. Ignoring.");
+            return null;
+        }
+    }
+
+    private static decimal? PromptDecimalOptional(string label)
+    {
+        Console.Write(label);
+        var s = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(s)) return null;
+
+        if (decimal.TryParse(s, NumberStyles.Number, CultureInfo.CurrentCulture, out var d) ||
+            decimal.TryParse(s, NumberStyles.Number, CultureInfo.InvariantCulture, out d))
+            return d;
+
+        Console.WriteLine("Invalid number. Ignoring.");
+        return null;
     }
 
     private static string PromptNonEmpty(string label)

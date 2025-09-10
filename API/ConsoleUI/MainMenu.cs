@@ -17,7 +17,7 @@ public class MainMenu(IPassengerService passengerService, IFlightService flightS
         switch (choice)
         {
             case "1":
-                var passengerMenu = new PassengerMenu(passengerService);
+                var passengerMenu = new PassengerMenu(passengerService, flightService);
                 await passengerMenu.RunAsync();
                 return true;
             case "2":
