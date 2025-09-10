@@ -11,6 +11,8 @@ public class FlightClassRepository(string filePath)
     protected override string Header =>
         "FlightId,Class,Price,CapacityTotal,SeatsAvailable";
 
+    public async Task<IReadOnlyList<FlightClass>> GetAllAsync() => await ReadAllAsync();
+
     public async Task AddOrUpdateRangeAsync(IEnumerable<FlightClass> rows)
     {
         var all = await ReadAllAsync();
