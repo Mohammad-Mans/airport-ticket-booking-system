@@ -8,6 +8,50 @@ namespace ATBS.Domain.Services;
 public class FlightService(IFlightRepository flightRepo, IFlightClassRepository classRepo)
     : IFlightService
 {
+    public async Task<IReadOnlyList<FlightOption>> SearchAsync(FlightSearchQuery q)
+    {
+        var flights = await flightRepo.GetAllAsync();
+        var classes = await classRepo.GetAllAsync();
+        
+        var depCountry = Norm(q.DepartureCountry);
+        var dstCountry = Norm(q.DestinationCountry);
+        var depAirport = Norm(q.DepartureAirport);
+        var arrAirport = Norm(q.ArrivalAirport);
+        var depDate  = q.DepartureDateUtc;
+
+        var results = flights
+            .Where(f =>
+                (depCountry is null || Eq(f.DepartureCountry, depCountry)) &&
+                (dstCountry is null || Eq(f.DestinationCountry, dstCountry)) &&
+                (depAirport is null || Eq(f.DepartureAirport, depAirport)) &&
+                (arrAirport is null || Eq(f.ArrivalAirport, arrAirport)) &&
+                (!depDate.HasValue || DateOnly.FromDateTime(f.DepartureDate.ToUniversalTime()) == depDate.Value)
+            )
+            .Join(
+                classes,
+                f => f.Id,
+                c => c.FlightId,
+                (f, c) => new { f, c }
+            )
+            .Where(x =>
+                (!q.Class.HasValue    || x.c.Class == q.Class.Value) &&
+                (!q.OnlyWithSeats     || x.c.SeatsAvailable > 0) &&
+                (!q.MaxPrice.HasValue || x.c.Price <= q.MaxPrice.Value)
+            )
+            .OrderBy(x => x.f.FlightNumber)
+            .ThenBy(x => x.c.Price)
+            .Select(x => new FlightOption(x.f, x.c.Class, x.c.Price, x.c.SeatsAvailable))
+            .ToList();
+
+        return results;
+        
+        static string? Norm(string? s) =>
+            string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+        static bool Eq(string a, string b) =>
+            string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+    }
+
     // Expected manager CSV header:
     // FlightNumber,DepartureAirport,DepartureDate,DepartureCountry,ArrivalAirport,DestinationCountry,ArrivalDate,
     // EconomyPrice,BusinessPrice,FirstPrice,EconomyCapacity,BusinessCapacity,FirstCapacity
