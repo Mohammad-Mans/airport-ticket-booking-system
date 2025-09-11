@@ -67,6 +67,30 @@ public class BookingService(
         return views;
     }
 
+    public async Task<bool> CancelAsync(Guid bookingId)
+    {
+        var booking = await bookingRepo.GetByIdAsync(bookingId);
+        if (booking is null) return false;
+        if (booking.Status == BookingStatus.Cancelled) return true;
+
+        var passenger = await RequirePassengerAsync(booking.PassengerId);
+        await RequireFlightAsync(booking.FlightId);
+        await RequireFlightClassAsync(booking.FlightId, booking.Class);
+
+        var refunded = await passengerRepo.TryAdjustBalanceAsync(passenger.Id, +booking.Price);
+        if (!refunded)
+            throw new InvalidOperationException("Refund failed.");
+
+        var released = await flightClassRepo.TryReleaseSeatAsync(booking.FlightId, booking.Class);
+        if (!released)
+        {
+            await passengerRepo.TryAdjustBalanceAsync(passenger.Id, -booking.Price);
+            throw new InvalidOperationException("Failed to restore seat.");
+        }
+
+        return await bookingRepo.UpdateStatusAsync(bookingId, BookingStatus.Cancelled);
+    }
+
     private async Task<Passenger> RequirePassengerAsync(Guid id) =>
         await passengerRepo.GetByIdAsync(id)
         ?? throw new InvalidOperationException("Passenger not found.");

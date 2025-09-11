@@ -72,9 +72,9 @@ public class PassengerMenu(
             case "3":
                 await ViewMyBookingsAsync();
                 return true;
-            // case "4":
-            //     await CancelBookingAsync();
-            //     return true;
+            case "4":
+                await CancelBookingAsync();
+                return true;
             // case "5":
             //     await ModifyBookingAsync();
             //     return true;
@@ -201,6 +201,45 @@ public class PassengerMenu(
         catch (Exception ex)
         {
             Console.WriteLine($"\nFailed to load bookings: {ex.Message}");
+        }
+
+        WaitForKeyPress();
+    }
+
+    private async Task CancelBookingAsync()
+    {
+        try
+        {
+            var views = await bookingService.GetByPassengerAsync(_currentPassengerId!.Value);
+
+            Console.WriteLine();
+            if (views.Count == 0)
+            {
+                Console.WriteLine("You have no active bookings to cancel.");
+                WaitForKeyPress();
+                return;
+            }
+
+            RenderBookings(views);
+
+            var idx = PromptIndex("\nChoose a booking to cancel: ", 1, views.Count);
+            var chosen = views[idx - 1];
+
+            Console.Write($"Confirm cancel booking #{idx}? (y/n): ");
+            var choice = (Console.ReadLine() ?? "").Trim().ToLowerInvariant();
+            if (choice is not "y" and not "yes")
+            {
+                Console.WriteLine("Cancellation aborted.");
+                WaitForKeyPress();
+                return;
+            }
+
+            var isCancelled = await bookingService.CancelAsync(chosen.Booking.Id);
+            Console.WriteLine(isCancelled ? "Booking cancelled." : "Booking not found.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"\nCancel failed: {ex.Message}");
         }
 
         WaitForKeyPress();

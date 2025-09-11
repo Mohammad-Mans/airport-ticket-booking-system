@@ -17,4 +17,5 @@ public interface IBookingService
 {
     Task<Booking> BookAsync(Guid passengerId, Guid flightId, TravelClass travelClass);
     Task<IReadOnlyList<BookingView>> GetByPassengerAsync(Guid passengerId);
+    Task<bool> CancelAsync(Guid bookingId);
 }
