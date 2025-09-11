@@ -69,9 +69,9 @@ public class PassengerMenu(
             case "2":
                 await BookFlightAsync();
                 return true;
-            // case "3":
-            //     await ViewMyBookingsAsync();
-            //     return true;
+            case "3":
+                await ViewMyBookingsAsync();
+                return true;
             // case "4":
             //     await CancelBookingAsync();
             //     return true;
@@ -180,6 +180,43 @@ public class PassengerMenu(
         }
 
         WaitForKeyPress();
+    }
+
+    private async Task ViewMyBookingsAsync()
+    {
+        try
+        {
+            var views = await bookingService.GetByPassengerAsync(_currentPassengerId!.Value);
+
+            Console.WriteLine();
+            if (views.Count == 0)
+            {
+                Console.WriteLine("You have no bookings.");
+            }
+            else
+            {
+                RenderBookings(views);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"\nFailed to load bookings: {ex.Message}");
+        }
+
+        WaitForKeyPress();
+    }
+
+    private static void RenderBookings(IReadOnlyList<BookingView> views)
+    {
+        for (int i = 0; i < views.Count; i++)
+        {
+            var v = views[i];
+            Console.WriteLine(
+                $"{i + 1}. {v.FlightNumber} | " +
+                $"{v.FromCountry}:{v.FromAirport} -> {v.ToCountry}:{v.ToAirport} | " +
+                $"{v.Departure:dd-MM-yyyy HH:mm} -> {v.Arrival:dd-MM-yyyy HH:mm} | " +
+                $"Class: {v.Booking.Class} | Price: {v.Booking.Price:F2}");
+        }
     }
 
     private async Task<IReadOnlyList<FlightOption>?> SearchFlightsWithPromptAsync()

@@ -44,6 +44,29 @@ public class BookingService(
         return await bookingRepo.AddAsync(booking);
     }
 
+    public async Task<IReadOnlyList<BookingView>> GetByPassengerAsync(Guid passengerId)
+    {
+        var bookings = await bookingRepo.GetByPassengerIdAsync(passengerId);
+        if (bookings.Count == 0) return [];
+
+        var flights = await flightRepo.GetAllAsync();
+        var views = bookings
+            .Where(b => b.Status == BookingStatus.Booked)
+            .Join(
+                flights,
+                b => b.FlightId,
+                f => f.Id,
+                (b, f) => new BookingView(
+                    b,
+                    f.FlightNumber,
+                    f.DepartureAirport, f.DepartureCountry,
+                    f.ArrivalAirport, f.DestinationCountry,
+                    f.DepartureDate, f.ArrivalDate))
+            .ToList();
+
+        return views;
+    }
+
     private async Task<Passenger> RequirePassengerAsync(Guid id) =>
         await passengerRepo.GetByIdAsync(id)
         ?? throw new InvalidOperationException("Passenger not found.");
