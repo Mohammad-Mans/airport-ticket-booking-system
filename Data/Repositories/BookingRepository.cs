@@ -11,6 +11,12 @@ public class BookingRepository(string filePath)
     protected override string Header =>
         "Id,FlightId,PassengerId,Price,Class,Status,CreatedAt";
 
+    public async Task<Booking?> GetByIdAsync(Guid id)
+    {
+        var all = await ReadAllAsync();
+        return all.FirstOrDefault(b => b.Id == id);
+    }
+
     public async Task<IReadOnlyList<Booking>> GetByPassengerIdAsync(Guid passengerId)
     {
         var all = await ReadAllAsync();
@@ -23,6 +29,28 @@ public class BookingRepository(string filePath)
         all.Add(booking);
         await WriteAllAsync(all);
         return booking;
+    }
+
+    public async Task<bool> UpdateStatusAsync(Guid id, BookingStatus status)
+    {
+        var all = await ReadAllAsync();
+        var idx = all.FindIndex(b => b.Id == id);
+        if (idx < 0) return false;
+
+        var current = all[idx];
+        all[idx] = new Booking
+        {
+            Id = current.Id,
+            FlightId = current.FlightId,
+            PassengerId = current.PassengerId,
+            Price = current.Price,
+            Class = current.Class,
+            Status = status,
+            CreatedAt = current.CreatedAt
+        };
+
+        await WriteAllAsync(all);
+        return true;
     }
 
     protected override Booking Parse(string line)
