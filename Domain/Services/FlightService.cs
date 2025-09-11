@@ -12,44 +12,55 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
     {
         var flights = await flightRepo.GetAllAsync();
         var classes = await classRepo.GetAllAsync();
-        
+
         var depCountry = Norm(q.DepartureCountry);
         var dstCountry = Norm(q.DestinationCountry);
         var depAirport = Norm(q.DepartureAirport);
         var arrAirport = Norm(q.ArrivalAirport);
-        var depDate  = q.DepartureDateUtc;
+        var depDate = q.DepartureDateUtc;
+        var requireSeats = q.OnlyWithSeats;
+        var wantedClass = q.Class;
+        var maxPrice = q.MaxPrice;
 
         var results = flights
-            .Where(f =>
-                (depCountry is null || Eq(f.DepartureCountry, depCountry)) &&
-                (dstCountry is null || Eq(f.DestinationCountry, dstCountry)) &&
-                (depAirport is null || Eq(f.DepartureAirport, depAirport)) &&
-                (arrAirport is null || Eq(f.ArrivalAirport, arrAirport)) &&
-                (!depDate.HasValue || DateOnly.FromDateTime(f.DepartureDate.ToUniversalTime()) == depDate.Value)
-            )
-            .Join(
+            .Where(FlightMatchesQuery)
+            .GroupJoin(
                 classes,
                 f => f.Id,
                 c => c.FlightId,
-                (f, c) => new { f, c }
+                (f, fc) => new { Flight = f, FlightClasses = fc.ToList() }
             )
-            .Where(x =>
-                (!q.Class.HasValue    || x.c.Class == q.Class.Value) &&
-                (!q.OnlyWithSeats     || x.c.SeatsAvailable > 0) &&
-                (!q.MaxPrice.HasValue || x.c.Price <= q.MaxPrice.Value)
-            )
-            .OrderBy(x => x.f.FlightNumber)
-            .ThenBy(x => x.c.Price)
-            .Select(x => new FlightOption(x.f, x.c.Class, x.c.Price, x.c.SeatsAvailable))
+            .Select(x =>
+            {
+                var filteredClasses = x.FlightClasses.Where(ClassMatchesQuery)
+                    .Select(c => new FlightClassOption(c.Class, c.Price, c.SeatsAvailable))
+                    .ToList();
+
+                return new { x.Flight, Filtered = filteredClasses };
+            })
+            .Where(r => r.Filtered.Count > 0)
+            .Select(r => new FlightOption(r.Flight, r.Filtered, r.Filtered.Sum(o => o.SeatsAvailable)))
             .ToList();
 
         return results;
-        
+
         static string? Norm(string? s) =>
             string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 
         static bool Eq(string a, string b) =>
             string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+
+        bool FlightMatchesQuery(Flight f) =>
+            (depCountry is null || Eq(f.DepartureCountry, depCountry)) &&
+            (dstCountry is null || Eq(f.DestinationCountry, dstCountry)) &&
+            (depAirport is null || Eq(f.DepartureAirport, depAirport)) &&
+            (arrAirport is null || Eq(f.ArrivalAirport, arrAirport)) &&
+            (!depDate.HasValue || DateOnly.FromDateTime(f.DepartureDate.ToUniversalTime()) == depDate.Value);
+
+        bool ClassMatchesQuery(FlightClass c) =>
+            (!requireSeats || c.SeatsAvailable > 0) &&
+            (!wantedClass.HasValue || c.Class == wantedClass.Value) &&
+            (!maxPrice.HasValue || c.Price <= maxPrice.Value);
     }
 
     // Expected manager CSV header:

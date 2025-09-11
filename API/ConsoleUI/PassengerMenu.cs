@@ -163,14 +163,17 @@ public class PassengerMenu(IPassengerService passengerService, IFlightService fl
             return;
         }
 
-        int i = 1;
+        var i = 1;
         foreach (var o in options)
         {
+            var classSummary = string.Join(" | ",
+                o.ClassOptions.Select(co => $"{co.Class}:{co.Price:F2}$"));
+
             Console.WriteLine(
                 $"{i++}. {o.Flight.FlightNumber} | " +
                 $"{o.Flight.DepartureCountry}:{o.Flight.DepartureAirport} -> {o.Flight.DestinationCountry}:{o.Flight.ArrivalAirport} | " +
                 $"{o.Flight.DepartureDate:dd-MM-yyyy HH:mm} | " +
-                $"{o.Class} | {o.Price:F2} | Seats: {o.SeatsAvailable}");
+                $"{classSummary} | Seats: {o.TotalSeats}");
         }
 
         WaitForKeyPress();

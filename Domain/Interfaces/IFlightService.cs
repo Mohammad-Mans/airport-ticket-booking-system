@@ -21,7 +21,12 @@ public sealed class FlightSearchQuery
     public bool OnlyWithSeats { get; set; } = true;
 }
 
-public sealed record FlightOption(Flight Flight, TravelClass Class, decimal Price, int SeatsAvailable);
+public sealed record FlightClassOption(TravelClass Class, decimal Price, int SeatsAvailable);
+
+public sealed record FlightOption(
+    Flight Flight,
+    IReadOnlyList<FlightClassOption> ClassOptions,
+    int TotalSeats);
 
 public interface IFlightService
 {
