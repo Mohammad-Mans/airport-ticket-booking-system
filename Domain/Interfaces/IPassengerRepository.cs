@@ -9,4 +9,5 @@ public interface IPassengerRepository
     Task<IReadOnlyList<Passenger>> GetAllAsync();
     Task<Passenger> AddAsync(Passenger passenger);
     Task<Passenger> UpdateAsync(Passenger passenger);
+    Task<bool> TryAdjustBalanceAsync(Guid passengerId, decimal delta);
 }

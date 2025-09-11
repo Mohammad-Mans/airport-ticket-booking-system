@@ -45,6 +45,22 @@ public class PassengerRepository(string filePath) : BaseCsvRepository<Passenger>
         return passenger;
     }
 
+    public async Task<bool> TryAdjustBalanceAsync(Guid passengerId, decimal delta)
+    {
+        var all = await ReadAllAsync();
+        var idx = all.FindIndex(p => p.Id == passengerId);
+        if (idx < 0) return false;
+
+        var p = all[idx];
+        var newBalance = p.Balance + delta;
+        if (newBalance < 0) return false;
+
+        p.Balance = newBalance;
+        all[idx] = p;
+        await WriteAllAsync(all);
+        return true;
+    }
+
     protected override Passenger Parse(string line)
     {
         var parts = line.Split(',');
