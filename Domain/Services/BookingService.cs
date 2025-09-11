@@ -14,7 +14,7 @@ public class BookingService(
     public async Task<Booking> BookAsync(Guid passengerId, Guid flightId, TravelClass travelClass)
     {
         var passenger = await RequirePassengerAsync(passengerId);
-        _ = await RequireFlightAsync(flightId);
+        await RequireFlightAsync(flightId);
         var fc = await RequireFlightClassAsync(flightId, travelClass);
 
         if (passenger.Balance < fc.Price)

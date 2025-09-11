@@ -4,7 +4,10 @@ using ATBS.Domain.Interfaces;
 
 namespace ATBS.API.ConsoleUI;
 
-public class PassengerMenu(IPassengerService passengerService, IFlightService flightService) : BaseMenu
+public class PassengerMenu(
+    IPassengerService passengerService,
+    IFlightService flightService,
+    IBookingService bookingService) : BaseMenu
 {
     private Guid? _currentPassengerId;
 
@@ -63,9 +66,9 @@ public class PassengerMenu(IPassengerService passengerService, IFlightService fl
             case "1":
                 await SearchFlightsAsync();
                 return true;
-            // case "2":
-            //     await BookFlightAsync();
-            //     return true;
+            case "2":
+                await BookFlightAsync();
+                return true;
             // case "3":
             //     await ViewMyBookingsAsync();
             //     return true;
@@ -139,9 +142,66 @@ public class PassengerMenu(IPassengerService passengerService, IFlightService fl
     private async Task SearchFlightsAsync()
     {
         Console.WriteLine();
+        var rows = await SearchFlightsWithPromptAsync();
+        if (rows is null) return;
+        WaitForKeyPress();
+    }
 
+    private async Task BookFlightAsync()
+    {
+        Console.WriteLine();
+        var rows = await SearchFlightsWithPromptAsync();
+        if (rows is null) return;
+
+        var idx = PromptIndex("\nChoose a flight number to book: ", 1, rows.Count);
+        var chosen = rows[idx - 1];
+
+        Console.WriteLine("\nChoose class:");
+        for (int i = 0; i < chosen.ClassOptions.Count; i++)
+        {
+            var o = chosen.ClassOptions[i];
+            Console.WriteLine($"{i + 1}. {o.Class} - {o.Price:F2} (Seats:{o.SeatsAvailable})");
+        }
+
+        var classIdx = PromptIndex("Class option: ", 1, chosen.ClassOptions.Count);
+        var chosenClass = chosen.ClassOptions[classIdx - 1];
+
+        try
+        {
+            var booking =
+                await bookingService.BookAsync(_currentPassengerId!.Value, chosen.Flight.Id, chosenClass.Class);
+            Console.WriteLine($"\nBooked! #{booking.Id}");
+            Console.WriteLine(
+                $"Flight: {chosen.Flight.FlightNumber} | Class: {booking.Class} | Price: {booking.Price:F2}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"\nBooking failed: {ex.Message}");
+        }
+
+        WaitForKeyPress();
+    }
+
+    private async Task<IReadOnlyList<FlightOption>?> SearchFlightsWithPromptAsync()
+    {
         Console.WriteLine("\nEnter search filters (leave any field blank to skip):");
-        var q = new FlightSearchQuery
+        var q = BuildSearchQuery();
+
+        var rows = await flightService.SearchAsync(q);
+
+        Console.WriteLine();
+        if (rows.Count == 0)
+        {
+            Console.WriteLine("No flights match your criteria.");
+            return null;
+        }
+
+        RenderFlights(rows);
+        return rows;
+    }
+
+    private static FlightSearchQuery BuildSearchQuery()
+        => new()
         {
             DepartureCountry = PromptOptional("Departure country: "),
             DestinationCountry = PromptOptional("Destination country: "),
@@ -153,30 +213,31 @@ public class PassengerMenu(IPassengerService passengerService, IFlightService fl
             OnlyWithSeats = true
         };
 
-        var options = await flightService.SearchAsync(q);
-
-        Console.WriteLine();
-        if (options.Count == 0)
+    private static void RenderFlights(IReadOnlyList<FlightOption> rows)
+    {
+        for (int i = 0; i < rows.Count; i++)
         {
-            Console.WriteLine("No flights match your criteria.");
-            WaitForKeyPress();
-            return;
-        }
-
-        var i = 1;
-        foreach (var o in options)
-        {
+            var o = rows[i];
             var classSummary = string.Join(" | ",
-                o.ClassOptions.Select(co => $"{co.Class}:{co.Price:F2}$"));
+                o.ClassOptions.Select(co => $"{co.Class}:{co.Price:F2}$ (Seats:{co.SeatsAvailable})"));
 
             Console.WriteLine(
-                $"{i++}. {o.Flight.FlightNumber} | " +
+                $"{i + 1}. {o.Flight.FlightNumber} | " +
                 $"{o.Flight.DepartureCountry}:{o.Flight.DepartureAirport} -> {o.Flight.DestinationCountry}:{o.Flight.ArrivalAirport} | " +
                 $"{o.Flight.DepartureDate:dd-MM-yyyy HH:mm} | " +
-                $"{classSummary} | Seats: {o.TotalSeats}");
+                $"{classSummary} | Seats Total: {o.TotalSeats}");
         }
+    }
 
-        WaitForKeyPress();
+    private static int PromptIndex(string label, int minInclusive, int maxInclusive)
+    {
+        while (true)
+        {
+            Console.Write(label);
+            var s = Console.ReadLine();
+            if (int.TryParse(s, out var n) && n >= minInclusive && n <= maxInclusive) return n;
+            Console.WriteLine($"Enter a number between {minInclusive} and {maxInclusive}.");
+        }
     }
 
     private static string? PromptOptional(string label)

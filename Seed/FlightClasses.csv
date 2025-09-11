@@ -5,7 +5,7 @@ FlightId,Class,Price,CapacityTotal,SeatsAvailable
 6d8bf0cd-b24c-4761-b7e5-05c88db97746,Economy,289.50,240,240
 6d8bf0cd-b24c-4761-b7e5-05c88db97746,Business,899.50,32,32
 6d8bf0cd-b24c-4761-b7e5-05c88db97746,First,1899.50,8,8
-09df30d1-b5d3-4ab8-baf7-aff65e27e12c,Economy,329.00,210,210
+09df30d1-b5d3-4ab8-baf7-aff65e27e12c,Economy,329.00,210,209
 09df30d1-b5d3-4ab8-baf7-aff65e27e12c,Business,1049.00,30,30
 09df30d1-b5d3-4ab8-baf7-aff65e27e12c,First,2199.00,8,8
 886d8b5a-90dc-4d79-bb9f-d27479008362,Economy,449.00,200,200

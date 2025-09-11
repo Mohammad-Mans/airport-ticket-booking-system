@@ -1,0 +1,2 @@
+Id,FlightId,PassengerId,Price,Class,Status,CreatedAt
+f3479e07-fe8d-42bc-b7e5-f17a059209c8,09df30d1-b5d3-4ab8-baf7-aff65e27e12c,b7ecfebe-95b9-4a83-ba0a-df3e8de96cb6,329.00,Economy,Booked,2025-09-11T18:22:25.1534031Z
