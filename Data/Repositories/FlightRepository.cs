@@ -13,6 +13,12 @@ public class FlightRepository(string filePath)
     public async Task<IReadOnlyList<Flight>> GetAllAsync()
         => await ReadAllAsync();
 
+    public async Task<Flight?> GetByIdAsync(Guid id)
+    {
+        var all = await ReadAllAsync();
+        return all.FirstOrDefault(f => f.Id == id);
+    }
+
     public async Task<Flight> AddAsync(Flight flight)
     {
         var all = await ReadAllAsync();
