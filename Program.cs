@@ -12,11 +12,14 @@ class Program
         var passengerRepository = new PassengerRepository(FilePaths.PassengerFilePath);
         var flightRepository = new FlightRepository(FilePaths.FlightFilePath);
         var flightClassRepository = new FlightClassRepository(FilePaths.FlightClassFilePath);
+        var bookingRepository = new BookingRepository(FilePaths.BookingFilePath);
 
         var passengerService = new PassengerService(passengerRepository);
         var flightService = new FlightService(flightRepository, flightClassRepository);
+        var bookingService = new BookingService(bookingRepository, passengerRepository, flightRepository,
+            flightClassRepository);
 
-        var mainMenu = new MainMenu(passengerService, flightService);
+        var mainMenu = new MainMenu(passengerService, flightService, bookingService);
         await mainMenu.RunAsync();
     }
 }
