@@ -1,0 +1,49 @@
+using System.Globalization;
+using ATBS.Domain.Entities;
+using ATBS.Domain.Enums;
+using ATBS.Domain.Interfaces;
+
+namespace ATBS.Data.Repositories;
+
+public class BookingRepository(string filePath)
+    : BaseCsvRepository<Booking>(filePath), IBookingRepository
+{
+    protected override string Header =>
+        "Id,FlightId,PassengerId,Price,Class,Status,CreatedAt";
+    
+    public async Task<Booking> AddAsync(Booking booking)
+    {
+        var all = await ReadAllAsync();
+        all.Add(booking);
+        await WriteAllAsync(all);
+        return booking;
+    }
+    
+    protected override Booking Parse(string line)
+    {
+        var p = line.Split(',', StringSplitOptions.TrimEntries);
+        if (p.Length != 7) throw new FormatException("Invalid CSV line for Booking.");
+
+        return new Booking
+        {
+            Id = Guid.Parse(p[0]),
+            FlightId = Guid.Parse(p[1]),
+            PassengerId = Guid.Parse(p[2]),
+            Price = decimal.Parse(p[3], NumberStyles.Number, CultureInfo.InvariantCulture),
+            Class = Enum.Parse<TravelClass>(p[4], ignoreCase: true),
+            Status = Enum.Parse<BookingStatus>(p[5], ignoreCase: true),
+            CreatedAt = DateTime.ParseExact(p[6], "O", CultureInfo.InvariantCulture,
+                DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal),
+        };
+    }
+
+    protected override string Serialize(Booking b)
+        => string.Join(',',
+            b.Id,
+            b.FlightId,
+            b.PassengerId,
+            b.Price.ToString(CultureInfo.InvariantCulture),
+            b.Class.ToString(),
+            b.Status.ToString(),
+            b.CreatedAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+}
