@@ -27,6 +27,42 @@ public class FlightClassRepository(string filePath)
         await WriteAllAsync(all);
     }
 
+    public async Task<FlightClass?> GetByFlightAndClassAsync(Guid flightId, TravelClass travelClass)
+    {
+        var all = await ReadAllAsync();
+        return all.FirstOrDefault(r => r.FlightId == flightId && r.Class == travelClass);
+    }
+
+    public async Task<bool> TryReserveSeatAsync(Guid flightId, TravelClass travelClass)
+    {
+        var all = await ReadAllAsync();
+        var idx = all.FindIndex(r => r.FlightId == flightId && r.Class == travelClass);
+        if (idx < 0) return false;
+
+        var row = all[idx];
+        if (row.SeatsAvailable <= 0) return false;
+
+        row.SeatsAvailable -= 1;
+        all[idx] = row;
+        await WriteAllAsync(all);
+        return true;
+    }
+
+    public async Task<bool> TryReleaseSeatAsync(Guid flightId, TravelClass travelClass)
+    {
+        var all = await ReadAllAsync();
+        var idx = all.FindIndex(r => r.FlightId == flightId && r.Class == travelClass);
+        if (idx < 0) return false;
+
+        var row = all[idx];
+        if (row.SeatsAvailable >= row.CapacityTotal) return false;
+
+        row.SeatsAvailable += 1;
+        all[idx] = row;
+        await WriteAllAsync(all);
+        return true;
+    }
+
     protected override FlightClass Parse(string line)
     {
         var p = line.Split(',', StringSplitOptions.TrimEntries);
