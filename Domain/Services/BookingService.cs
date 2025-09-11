@@ -91,6 +91,78 @@ public class BookingService(
         return await bookingRepo.UpdateStatusAsync(bookingId, BookingStatus.Cancelled);
     }
 
+    public async Task<Booking> ChangeClassAsync(Guid bookingId, TravelClass newClass)
+    {
+        var booking = await bookingRepo.GetByIdAsync(bookingId)
+                      ?? throw new InvalidOperationException("Booking not found.");
+
+        if (booking.Status != BookingStatus.Booked)
+            throw new InvalidOperationException("Only booked reservations can be modified.");
+
+        if (booking.Class == newClass)
+            return booking;
+
+        var passenger = await RequirePassengerAsync(booking.PassengerId);
+        var flight = await RequireFlightAsync(booking.FlightId);
+
+        var oldFc = await RequireFlightClassAsync(flight.Id, booking.Class);
+        var newFc = await RequireFlightClassAsync(flight.Id, newClass);
+
+        var delta = newFc.Price - oldFc.Price;
+
+        await ReserveNewSeatOrThrow();
+        await AdjustBalanceOrThrow();
+        await ReleaseOldSeatOrThrow();
+        await PersistBookingOrThrow();
+
+        booking.Class = newClass;
+        booking.Price = newFc.Price;
+        return booking;
+
+        async Task ReserveNewSeatOrThrow()
+        {
+            var isSeatReserved = await flightClassRepo.TryReserveSeatAsync(flight.Id, newClass);
+            if (!isSeatReserved)
+                throw new InvalidOperationException("No seats available in the requested class.");
+        }
+
+        async Task AdjustBalanceOrThrow()
+        {
+            if (delta == 0m) return;
+
+            var isBalanceAdjusted = await passengerRepo.TryAdjustBalanceAsync(passenger.Id, -delta);
+            if (!isBalanceAdjusted)
+            {
+                await flightClassRepo.TryReleaseSeatAsync(flight.Id, newClass);
+                throw new InvalidOperationException(
+                    delta > 0 ? "Insufficient balance for upgrade." : "Refund failed.");
+            }
+        }
+
+        async Task ReleaseOldSeatOrThrow()
+        {
+            var isSeatReleased = await flightClassRepo.TryReleaseSeatAsync(flight.Id, booking.Class);
+            if (!isSeatReleased)
+            {
+                if (delta != 0m) await passengerRepo.TryAdjustBalanceAsync(passenger.Id, +delta);
+                await flightClassRepo.TryReleaseSeatAsync(flight.Id, newClass);
+                throw new InvalidOperationException("Failed to release previous seat.");
+            }
+        }
+
+        async Task PersistBookingOrThrow()
+        {
+            var isBookingUpdated = await bookingRepo.UpdateClassAndPriceAsync(booking.Id, newClass, newFc.Price);
+            if (!isBookingUpdated)
+            {
+                await flightClassRepo.TryReserveSeatAsync(flight.Id, booking.Class);
+                await flightClassRepo.TryReleaseSeatAsync(flight.Id, newClass);
+                if (delta != 0m) await passengerRepo.TryAdjustBalanceAsync(passenger.Id, +delta);
+                throw new InvalidOperationException("Failed to update booking.");
+            }
+        }
+    }
+
     private async Task<Passenger> RequirePassengerAsync(Guid id) =>
         await passengerRepo.GetByIdAsync(id)
         ?? throw new InvalidOperationException("Passenger not found.");

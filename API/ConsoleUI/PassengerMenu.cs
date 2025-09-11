@@ -75,9 +75,9 @@ public class PassengerMenu(
             case "4":
                 await CancelBookingAsync();
                 return true;
-            // case "5":
-            //     await ModifyBookingAsync();
-            //     return true;
+            case "5":
+                await ModifyBookingAsync();
+                return true;
             case "6":
                 _currentPassengerId = null;
                 Console.WriteLine("Logged out successfully.");
@@ -243,6 +243,81 @@ public class PassengerMenu(
         }
 
         WaitForKeyPress();
+    }
+
+    private async Task ModifyBookingAsync()
+    {
+        try
+        {
+            var views = await bookingService.GetByPassengerAsync(_currentPassengerId!.Value);
+
+            Console.WriteLine();
+            if (views.Count == 0)
+            {
+                Console.WriteLine("You have no active bookings to modify.");
+                WaitForKeyPress();
+                return;
+            }
+
+            RenderBookings(views);
+
+            var idx = PromptIndex("\nChoose a booking to modify: ", 1, views.Count);
+            var chosen = views[idx - 1];
+
+            Console.WriteLine($"Current class: {chosen.Booking.Class}");
+            var newClass = PromptClassRequired("Choose new class (Economy/Business/First): ", chosen.Booking.Class);
+
+            try
+            {
+                var updated = await bookingService.ChangeClassAsync(chosen.Booking.Id, newClass);
+                Console.WriteLine("\nBooking updated.");
+                Console.WriteLine(
+                    $"{chosen.FlightNumber} | " +
+                    $"{chosen.FromCountry}:{chosen.FromAirport} -> {chosen.ToCountry}:{chosen.ToAirport} | " +
+                    $"Class: {updated.Class} | Price: {updated.Price:F2}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"\nModify failed: {ex.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"\nFailed to load bookings: {ex.Message}");
+        }
+
+        WaitForKeyPress();
+    }
+
+    private static TravelClass PromptClassRequired(string label, TravelClass currentClass)
+    {
+        while (true)
+        {
+            Console.Write(label);
+            var s = (Console.ReadLine() ?? "").Trim().ToLowerInvariant();
+
+            TravelClass? parsed = s switch
+            {
+                "e" or "economy" => TravelClass.Economy,
+                "b" or "business" => TravelClass.Business,
+                "f" or "first" => TravelClass.First,
+                _ => null
+            };
+
+            if (parsed is null)
+            {
+                Console.WriteLine("Unknown class. Please enter Economy/Business/First.");
+                continue;
+            }
+
+            if (parsed.Value == currentClass)
+            {
+                Console.WriteLine("New class must be different from current class.");
+                continue;
+            }
+
+            return parsed.Value;
+        }
     }
 
     private static void RenderBookings(IReadOnlyList<BookingView> views)
