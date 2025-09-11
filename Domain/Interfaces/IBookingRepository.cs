@@ -5,5 +5,6 @@ namespace ATBS.Domain.Interfaces;
 
 public interface IBookingRepository
 {
+    Task<IReadOnlyList<Booking>> GetByPassengerIdAsync(Guid passengerId);
     Task<Booking> AddAsync(Booking booking);
 }

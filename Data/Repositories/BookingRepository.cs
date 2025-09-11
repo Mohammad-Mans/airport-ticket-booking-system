@@ -10,7 +10,13 @@ public class BookingRepository(string filePath)
 {
     protected override string Header =>
         "Id,FlightId,PassengerId,Price,Class,Status,CreatedAt";
-    
+
+    public async Task<IReadOnlyList<Booking>> GetByPassengerIdAsync(Guid passengerId)
+    {
+        var all = await ReadAllAsync();
+        return all.Where(b => b.PassengerId == passengerId).ToList();
+    }
+
     public async Task<Booking> AddAsync(Booking booking)
     {
         var all = await ReadAllAsync();
@@ -18,7 +24,7 @@ public class BookingRepository(string filePath)
         await WriteAllAsync(all);
         return booking;
     }
-    
+
     protected override Booking Parse(string line)
     {
         var p = line.Split(',', StringSplitOptions.TrimEntries);
