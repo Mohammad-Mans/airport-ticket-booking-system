@@ -53,6 +53,21 @@ public class BookingRepository(string filePath)
         return true;
     }
 
+    public async Task<bool> UpdateClassAndPriceAsync(Guid bookingId, TravelClass newClass, decimal newPrice)
+    {
+        var all = await ReadAllAsync();
+        var idx = all.FindIndex(b => b.Id == bookingId);
+        if (idx < 0) return false;
+
+        var b = all[idx];
+        b.Class = newClass;
+        b.Price = newPrice;
+        all[idx] = b;
+
+        await WriteAllAsync(all);
+        return true;
+    }
+
     protected override Booking Parse(string line)
     {
         var p = line.Split(',', StringSplitOptions.TrimEntries);

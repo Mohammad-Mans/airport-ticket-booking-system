@@ -9,4 +9,5 @@ public interface IBookingRepository
     Task<IReadOnlyList<Booking>> GetByPassengerIdAsync(Guid passengerId);
     Task<Booking> AddAsync(Booking booking);
     Task<bool> UpdateStatusAsync(Guid id, BookingStatus status);
+    Task<bool> UpdateClassAndPriceAsync(Guid bookingId, TravelClass newClass, decimal newPrice);
 }
