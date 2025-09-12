@@ -11,6 +11,9 @@ public class BookingRepository(string filePath)
     protected override string Header =>
         "Id,FlightId,PassengerId,Price,Class,Status,CreatedAt";
 
+    public async Task<IReadOnlyList<Booking>> GetAllAsync()
+        => await ReadAllAsync();
+
     public async Task<Booking?> GetByIdAsync(Guid id)
     {
         var all = await ReadAllAsync();
