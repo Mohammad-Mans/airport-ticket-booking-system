@@ -23,24 +23,22 @@ public class PassengerService(IPassengerRepository passengerRepository) : IPasse
         return await passengerRepository.AddAsync(newPassenger);
     }
 
-    public Task<Passenger?> GetByIdAsync(Guid id)
-        => passengerRepository.GetByIdAsync(id);
-
     public async Task<Passenger?> GetByNameAsync(string firstName, string lastName)
     {
         var (normalizedFirst, normalizedLast) = NormalizeNames(firstName, lastName);
         return await passengerRepository.FindByNameAsync(normalizedFirst, normalizedLast);
     }
 
-    public Task<IReadOnlyList<Passenger>> GetAllPassengersAsync()
-        => passengerRepository.GetAllAsync();
-
-    public async Task<Passenger> UpdatePassengerAsync(Passenger passenger)
+    public async Task<decimal?> GetBalanceAsync(Guid passengerId)
     {
-        if (passenger == null)
-            throw new ArgumentNullException(nameof(passenger));
+        var p = await passengerRepository.GetByIdAsync(passengerId);
+        return p?.Balance;
+    }
 
-        return await passengerRepository.UpdateAsync(passenger);
+    public async Task<bool> DepositAsync(Guid passengerId, decimal amount)
+    {
+        if (amount <= 0m) throw new ArgumentOutOfRangeException(nameof(amount), "Amount must be positive.");
+        return await passengerRepository.TryAdjustBalanceAsync(passengerId, amount);
     }
 
     private static (string normalizedFirst, string normalizedLast) NormalizeNames(string firstName, string lastName)

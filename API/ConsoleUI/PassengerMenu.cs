@@ -28,6 +28,7 @@ public class PassengerMenu(
             Console.WriteLine("3. View My Bookings");
             Console.WriteLine("4. Cancel Booking");
             Console.WriteLine("5. Modify Booking");
+            Console.WriteLine("7. View/Deposit Balance");
             Console.WriteLine("6. Logout");
         }
     }
@@ -79,6 +80,9 @@ public class PassengerMenu(
                 await ModifyBookingAsync();
                 return true;
             case "6":
+                await ViewOrDepositBalanceAsync();
+                return true;
+            case "7":
                 _currentPassengerId = null;
                 Console.WriteLine("Logged out successfully.");
                 WaitForKeyPress();
@@ -287,6 +291,70 @@ public class PassengerMenu(
         }
 
         WaitForKeyPress();
+    }
+
+    private async Task ViewOrDepositBalanceAsync()
+    {
+        Console.WriteLine();
+
+        try
+        {
+            var balance = await passengerService.GetBalanceAsync(_currentPassengerId!.Value);
+            if (balance is null)
+            {
+                Console.WriteLine("Passenger not found.");
+                WaitForKeyPress();
+                return;
+            }
+
+            Console.WriteLine($"Your current balance: {balance.Value:F2}");
+
+            Console.Write("Would you like to deposit? (y/n): ");
+            var ans = (Console.ReadLine() ?? "").Trim().ToLowerInvariant();
+            if (ans is not "y" and not "yes")
+            {
+                Console.WriteLine("No deposit made.");
+                WaitForKeyPress();
+                return;
+            }
+
+            var amount = PromptPositiveDecimal("Amount to deposit: ");
+            try
+            {
+                var ok = await passengerService.DepositAsync(_currentPassengerId.Value, amount);
+                Console.WriteLine(ok ? "Deposit successful." : "Passenger not found.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Deposit failed: {ex.Message}");
+            }
+
+            var newBal = await passengerService.GetBalanceAsync(_currentPassengerId.Value);
+            if (newBal is not null)
+                Console.WriteLine($"New balance: {newBal.Value:F2}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to retrieve balance: {ex.Message}");
+        }
+
+        WaitForKeyPress();
+    }
+
+    private static decimal PromptPositiveDecimal(string label)
+    {
+        while (true)
+        {
+            Console.Write(label);
+            var s = Console.ReadLine();
+            if (decimal.TryParse(s, NumberStyles.Number, CultureInfo.CurrentCulture, out var d) ||
+                decimal.TryParse(s, NumberStyles.Number, CultureInfo.InvariantCulture, out d))
+            {
+                if (d > 0m) return d;
+            }
+
+            Console.WriteLine("Please enter a positive amount.");
+        }
     }
 
     private static TravelClass PromptClassRequired(string label, TravelClass currentClass)
