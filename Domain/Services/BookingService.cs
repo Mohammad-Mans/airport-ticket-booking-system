@@ -56,12 +56,17 @@ public class BookingService(
                 flights,
                 b => b.FlightId,
                 f => f.Id,
-                (b, f) => new BookingView(
-                    b,
-                    f.FlightNumber,
-                    f.DepartureAirport, f.DepartureCountry,
-                    f.ArrivalAirport, f.DestinationCountry,
-                    f.DepartureDate, f.ArrivalDate))
+                (b, f) => new { Booking = b, Flight = f })
+            .OrderByDescending(x => x.Booking.CreatedAt)
+            .Select(x => new BookingView(
+                x.Booking,
+                x.Flight.FlightNumber,
+                x.Flight.DepartureAirport,
+                x.Flight.DepartureCountry,
+                x.Flight.ArrivalAirport,
+                x.Flight.DestinationCountry,
+                x.Flight.DepartureDate,
+                x.Flight.ArrivalDate))
             .ToList();
 
         return views;
