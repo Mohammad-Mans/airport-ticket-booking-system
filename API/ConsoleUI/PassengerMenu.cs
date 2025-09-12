@@ -28,8 +28,8 @@ public class PassengerMenu(
             Console.WriteLine("3. View My Bookings");
             Console.WriteLine("4. Cancel Booking");
             Console.WriteLine("5. Modify Booking");
-            Console.WriteLine("7. View/Deposit Balance");
-            Console.WriteLine("6. Logout");
+            Console.WriteLine("6. View/Deposit Balance");
+            Console.WriteLine("7. Logout");
         }
     }
 
