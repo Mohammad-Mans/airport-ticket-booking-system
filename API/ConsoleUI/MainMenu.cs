@@ -22,7 +22,7 @@ public class MainMenu(IPassengerService passengerService, IFlightService flightS
                 await passengerMenu.RunAsync();
                 return true;
             case "2":
-                var managerMenu = new ManagerMenu(flightService);
+                var managerMenu = new ManagerMenu(flightService, bookingService);
                 await managerMenu.RunAsync();
                 return true;
             default:

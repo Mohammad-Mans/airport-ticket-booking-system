@@ -168,6 +168,78 @@ public class BookingService(
         }
     }
 
+    public async Task<IReadOnlyList<BookingSearchView>> SearchAsync(BookingSearchQuery q)
+    {
+        var bookings = await bookingRepo.GetAllAsync();
+        var flights = await flightRepo.GetAllAsync();
+        var passengers = await passengerRepo.GetAllAsync();
+
+        var firstName = Norm(q.PassengerFirstName);
+        var lastName = Norm(q.PassengerLastName);
+        var flightNumber = Norm(q.FlightNumber);
+        var depCountry = Norm(q.DepartureCountry);
+        var dstCountry = Norm(q.DestinationCountry);
+        var depAirport = Norm(q.DepartureAirport);
+        var arrAirport = Norm(q.ArrivalAirport);
+        var depDate = q.DepartureDateUtc;
+        var wantedClass = q.Class;
+        var maxPrice = q.MaxPrice;
+
+        var result =
+            bookings
+                .Join(flights,
+                    b => b.FlightId,
+                    f => f.Id,
+                    (b, f) => new { Booking = b, Flight = f }
+                )
+                .Join(passengers,
+                    bf => bf.Booking.PassengerId,
+                    p => p.Id,
+                    (bf, p) => new { bf.Booking, bf.Flight, Passenger = p }
+                )
+                .Where(x => BookingMatchesQuery(x.Booking, x.Flight, x.Passenger)
+                )
+                .OrderByDescending(x => x.Booking.CreatedAt)
+                .Select(x => new BookingSearchView(
+                    x.Booking,
+                    x.Flight.FlightNumber,
+                    x.Flight.DepartureAirport,
+                    x.Flight.DepartureCountry,
+                    x.Flight.ArrivalAirport,
+                    x.Flight.DestinationCountry,
+                    x.Flight.DepartureDate,
+                    x.Flight.ArrivalDate,
+                    x.Passenger.FirstName,
+                    x.Passenger.LastName
+                ))
+                .ToList();
+
+        return result;
+
+        static string? Norm(string? s) =>
+            string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+        static bool Eq(string a, string b) =>
+            string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+
+        bool BookingMatchesQuery(Booking b, Flight f, Passenger p)
+        {
+            var depUtc = f.DepartureDate.ToUniversalTime();
+
+            return
+                (firstName is null || Eq(p.FirstName, firstName)) &&
+                (lastName is null || Eq(p.LastName, lastName)) &&
+                (flightNumber is null || Eq(f.FlightNumber, flightNumber)) &&
+                (wantedClass is null || b.Class == wantedClass) &&
+                (!maxPrice.HasValue || b.Price <= maxPrice.Value) &&
+                (depCountry is null || Eq(f.DepartureCountry, depCountry)) &&
+                (dstCountry is null || Eq(f.DestinationCountry, dstCountry)) &&
+                (depAirport is null || Eq(f.DepartureAirport, depAirport)) &&
+                (arrAirport is null || Eq(f.ArrivalAirport, arrAirport)) &&
+                (!depDate.HasValue || DateOnly.FromDateTime(depUtc) == depDate.Value);
+        }
+    }
+
     private async Task<Passenger> RequirePassengerAsync(Guid id) =>
         await passengerRepo.GetByIdAsync(id)
         ?? throw new InvalidOperationException("Passenger not found.");
