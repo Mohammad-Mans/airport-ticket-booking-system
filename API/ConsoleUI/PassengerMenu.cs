@@ -444,7 +444,7 @@ public class PassengerMenu(
                 $"{i + 1}. {o.Flight.FlightNumber} | " +
                 $"{o.Flight.DepartureCountry}:{o.Flight.DepartureAirport} -> {o.Flight.DestinationCountry}:{o.Flight.ArrivalAirport} | " +
                 $"{o.Flight.DepartureDate:dd-MM-yyyy HH:mm} | " +
-                $"{classSummary} | Seats Total: {o.TotalSeats}");
+                $"{classSummary}");
         }
     }
 

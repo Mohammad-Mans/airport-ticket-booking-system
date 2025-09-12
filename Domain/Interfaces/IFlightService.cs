@@ -25,8 +25,7 @@ public sealed record FlightClassOption(TravelClass Class, decimal Price, int Sea
 
 public sealed record FlightOption(
     Flight Flight,
-    IReadOnlyList<FlightClassOption> ClassOptions,
-    int TotalSeats);
+    IReadOnlyList<FlightClassOption> ClassOptions);
 
 public interface IFlightService
 {

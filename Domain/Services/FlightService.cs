@@ -39,7 +39,7 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
                 return new { x.Flight, Filtered = filteredClasses };
             })
             .Where(r => r.Filtered.Count > 0)
-            .Select(r => new FlightOption(r.Flight, r.Filtered, r.Filtered.Sum(o => o.SeatsAvailable)))
+            .Select(r => new FlightOption(r.Flight, r.Filtered))
             .ToList();
 
         return results;
