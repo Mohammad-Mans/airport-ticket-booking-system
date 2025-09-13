@@ -1,5 +1,3 @@
-using System.Globalization;
-using ATBS.Domain.Enums;
 using ATBS.Domain.Interfaces;
 
 namespace ATBS.API.ConsoleUI;
@@ -36,13 +34,9 @@ public class PassengerMenu(
     protected override async Task<bool> HandleChoiceAsync(string choice)
     {
         if (_currentPassengerId == null)
-        {
             return await HandleGuestChoiceAsync(choice);
-        }
-        else
-        {
-            return await HandlePassengerChoiceAsync(choice);
-        }
+
+        return await HandlePassengerChoiceAsync(choice);
     }
 
     private async Task<bool> HandleGuestChoiceAsync(string choice)
@@ -94,8 +88,8 @@ public class PassengerMenu(
 
     private async Task LoginAsync()
     {
-        var first = PromptNonEmpty("\nFirst name: ");
-        var last = PromptNonEmpty("Last name: ");
+        var first = ConsolePrompts.Required("\nFirst name: ");
+        var last = ConsolePrompts.Required("Last name: ");
 
         try
         {
@@ -122,9 +116,9 @@ public class PassengerMenu(
 
     private async Task RegisterAsync()
     {
-        var first = PromptNonEmpty("\nFirst name: ");
-        var last = PromptNonEmpty("Last name: ");
-        var balance = PromptDecimal("Initial balance (default 0): ", defaultValue: 0m);
+        var first = ConsolePrompts.Required("\nFirst name: ");
+        var last = ConsolePrompts.Required("Last name: ");
+        var balance = ConsolePrompts.DecimalWithDefault("Initial balance (default 0): ", 0m);
 
         try
         {
@@ -132,7 +126,7 @@ public class PassengerMenu(
             _currentPassengerId = passenger.Id;
 
             Console.WriteLine($"\nWelcome, {passenger.FirstName} {passenger.LastName}!");
-            Console.WriteLine($"You have been registered successfully!");
+            Console.WriteLine("You have been registered successfully!");
             Console.WriteLine($"Your Balance: {passenger.Balance:F2}");
         }
         catch (Exception ex)
@@ -157,7 +151,7 @@ public class PassengerMenu(
         var rows = await SearchFlightsWithPromptAsync();
         if (rows is null) return;
 
-        var idx = PromptIndex("\nChoose a flight number to book: ", 1, rows.Count);
+        var idx = ConsolePrompts.Index("\nChoose a flight number to book: ", 1, rows.Count);
         var chosen = rows[idx - 1];
 
         Console.WriteLine("\nChoose class:");
@@ -167,7 +161,7 @@ public class PassengerMenu(
             Console.WriteLine($"{i + 1}. {o.Class} - {o.Price:F2} (Seats:{o.SeatsAvailable})");
         }
 
-        var classIdx = PromptIndex("Class option: ", 1, chosen.ClassOptions.Count);
+        var classIdx = ConsolePrompts.Index("Class option: ", 1, chosen.ClassOptions.Count);
         var chosenClass = chosen.ClassOptions[classIdx - 1];
 
         try
@@ -226,12 +220,10 @@ public class PassengerMenu(
 
             RenderBookings(views);
 
-            var idx = PromptIndex("\nChoose a booking to cancel: ", 1, views.Count);
+            var idx = ConsolePrompts.Index("\nChoose a booking to cancel: ", 1, views.Count);
             var chosen = views[idx - 1];
 
-            Console.Write($"Confirm cancel booking #{idx}? (y/n): ");
-            var choice = (Console.ReadLine() ?? "").Trim().ToLowerInvariant();
-            if (choice is not "y" and not "yes")
+            if (!ConsolePrompts.Confirm($"Confirm cancel booking #{idx}? (y/n): "))
             {
                 Console.WriteLine("Cancellation aborted.");
                 WaitForKeyPress();
@@ -265,11 +257,12 @@ public class PassengerMenu(
 
             RenderBookings(views);
 
-            var idx = PromptIndex("\nChoose a booking to modify: ", 1, views.Count);
+            var idx = ConsolePrompts.Index("\nChoose a booking to modify: ", 1, views.Count);
             var chosen = views[idx - 1];
 
             Console.WriteLine($"Current class: {chosen.Booking.Class}");
-            var newClass = PromptClassRequired("Choose new class (Economy/Business/First): ", chosen.Booking.Class);
+            var newClass =
+                ConsolePrompts.ClassRequired("Choose new class (Economy/Business/First): ", chosen.Booking.Class);
 
             try
             {
@@ -309,16 +302,14 @@ public class PassengerMenu(
 
             Console.WriteLine($"Your current balance: {balance.Value:F2}");
 
-            Console.Write("Would you like to deposit? (y/n): ");
-            var ans = (Console.ReadLine() ?? "").Trim().ToLowerInvariant();
-            if (ans is not "y" and not "yes")
+            if (!ConsolePrompts.Confirm("Would you like to deposit? (y/n): "))
             {
                 Console.WriteLine("No deposit made.");
                 WaitForKeyPress();
                 return;
             }
 
-            var amount = PromptPositiveDecimal("Amount to deposit: ");
+            var amount = ConsolePrompts.PositiveDecimal("Amount to deposit: ");
             try
             {
                 var ok = await passengerService.DepositAsync(_currentPassengerId.Value, amount);
@@ -339,53 +330,6 @@ public class PassengerMenu(
         }
 
         WaitForKeyPress();
-    }
-
-    private static decimal PromptPositiveDecimal(string label)
-    {
-        while (true)
-        {
-            Console.Write(label);
-            var s = Console.ReadLine();
-            if (decimal.TryParse(s, NumberStyles.Number, CultureInfo.CurrentCulture, out var d) ||
-                decimal.TryParse(s, NumberStyles.Number, CultureInfo.InvariantCulture, out d))
-            {
-                if (d > 0m) return d;
-            }
-
-            Console.WriteLine("Please enter a positive amount.");
-        }
-    }
-
-    private static TravelClass PromptClassRequired(string label, TravelClass currentClass)
-    {
-        while (true)
-        {
-            Console.Write(label);
-            var s = (Console.ReadLine() ?? "").Trim().ToLowerInvariant();
-
-            TravelClass? parsed = s switch
-            {
-                "e" or "economy" => TravelClass.Economy,
-                "b" or "business" => TravelClass.Business,
-                "f" or "first" => TravelClass.First,
-                _ => null
-            };
-
-            if (parsed is null)
-            {
-                Console.WriteLine("Unknown class. Please enter Economy/Business/First.");
-                continue;
-            }
-
-            if (parsed.Value == currentClass)
-            {
-                Console.WriteLine("New class must be different from current class.");
-                continue;
-            }
-
-            return parsed.Value;
-        }
     }
 
     private static void RenderBookings(IReadOnlyList<BookingView> views)
@@ -422,13 +366,13 @@ public class PassengerMenu(
     private static FlightSearchQuery BuildSearchQuery()
         => new()
         {
-            DepartureCountry = PromptOptional("Departure country: "),
-            DestinationCountry = PromptOptional("Destination country: "),
-            DepartureAirport = PromptOptional("Departure airport: "),
-            ArrivalAirport = PromptOptional("Arrival airport: "),
-            DepartureDateUtc = PromptDateOnlyOptional("Departure date (dd-MM-yyyy): "),
-            Class = PromptClassOptional("Class (Economy/Business/First): "),
-            MaxPrice = PromptDecimalOptional("Max price: "),
+            DepartureCountry = ConsolePrompts.Optional("Departure country: "),
+            DestinationCountry = ConsolePrompts.Optional("Destination country: "),
+            DepartureAirport = ConsolePrompts.Optional("Departure airport: "),
+            ArrivalAirport = ConsolePrompts.Optional("Arrival airport: "),
+            DepartureDateUtc = ConsolePrompts.DateOnlyOptional("Departure date (dd-MM-yyyy): "),
+            Class = ConsolePrompts.ClassOptional("Class (Economy/Business/First): "),
+            MaxPrice = ConsolePrompts.DecimalOptional("Max price: "),
             OnlyWithSeats = true
         };
 
@@ -446,99 +390,5 @@ public class PassengerMenu(
                 $"{o.Flight.DepartureDate:dd-MM-yyyy HH:mm} | " +
                 $"{classSummary}");
         }
-    }
-
-    private static int PromptIndex(string label, int minInclusive, int maxInclusive)
-    {
-        while (true)
-        {
-            Console.Write(label);
-            var s = Console.ReadLine();
-            if (int.TryParse(s, out var n) && n >= minInclusive && n <= maxInclusive) return n;
-            Console.WriteLine($"Enter a number between {minInclusive} and {maxInclusive}.");
-        }
-    }
-
-    private static string? PromptOptional(string label)
-    {
-        Console.Write(label);
-        var s = Console.ReadLine();
-        return string.IsNullOrWhiteSpace(s) ? null : s.Trim();
-    }
-
-    private static DateOnly? PromptDateOnlyOptional(string label)
-    {
-        Console.Write(label);
-        var s = Console.ReadLine();
-        if (string.IsNullOrWhiteSpace(s)) return null;
-
-        if (DateOnly.TryParseExact(s.Trim(), "d-M-yyyy",
-                CultureInfo.InvariantCulture, DateTimeStyles.None, out var d))
-            return d;
-
-        Console.WriteLine("Invalid date format (expected dd-MM-yyyy). Ignoring.");
-        return null;
-    }
-
-    private static TravelClass? PromptClassOptional(string label)
-    {
-        Console.Write(label);
-        var s = Console.ReadLine();
-        if (string.IsNullOrWhiteSpace(s)) return null;
-
-        s = s.Trim().ToLowerInvariant();
-        return s switch
-        {
-            "e" or "economy" => TravelClass.Economy,
-            "b" or "business" => TravelClass.Business,
-            "f" or "first" => TravelClass.First,
-            _ => PrintAndReturnNull()
-        };
-
-        static TravelClass? PrintAndReturnNull()
-        {
-            Console.WriteLine("Unknown class. Ignoring.");
-            return null;
-        }
-    }
-
-    private static decimal? PromptDecimalOptional(string label)
-    {
-        Console.Write(label);
-        var s = Console.ReadLine();
-        if (string.IsNullOrWhiteSpace(s)) return null;
-
-        if (decimal.TryParse(s, NumberStyles.Number, CultureInfo.CurrentCulture, out var d) ||
-            decimal.TryParse(s, NumberStyles.Number, CultureInfo.InvariantCulture, out d))
-            return d;
-
-        Console.WriteLine("Invalid number. Ignoring.");
-        return null;
-    }
-
-    private static string PromptNonEmpty(string label)
-    {
-        while (true)
-        {
-            Console.Write(label);
-            var input = Console.ReadLine();
-            if (!string.IsNullOrWhiteSpace(input)) return input;
-            Console.WriteLine("This field is required. Please try again.");
-        }
-    }
-
-    // Prompts the user for a number and parses it as decimal.
-    // Tries CurrentCulture first, then InvariantCulture (so "23,99" and "23.99" both work).
-    // Returns defaultValue if input is empty or invalid.
-    private static decimal PromptDecimal(string label, decimal defaultValue)
-    {
-        Console.Write(label);
-        var enteredValue = Console.ReadLine();
-
-        if (decimal.TryParse(enteredValue, NumberStyles.Number, CultureInfo.CurrentCulture, out var d) ||
-            decimal.TryParse(enteredValue, NumberStyles.Number, CultureInfo.InvariantCulture, out d))
-            return d;
-
-        return defaultValue;
     }
 }

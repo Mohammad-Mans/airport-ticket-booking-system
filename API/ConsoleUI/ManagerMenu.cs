@@ -1,7 +1,5 @@
-using System.Globalization;
 using ATBS.API.Validation;
 using ATBS.Domain.Entities;
-using ATBS.Domain.Enums;
 using ATBS.Domain.Interfaces;
 using ATBS.Utils;
 
@@ -36,16 +34,16 @@ public class ManagerMenu(IFlightService flightService, IBookingService bookingSe
     {
         Console.WriteLine("\nEnter booking filters (leave blank to skip):");
 
-        string? firstName = Prompt("Passenger first name: ");
-        string? lastName = Prompt("Passenger last name: ");
-        string? flightNumber = Prompt("Flight number: ");
-        string? depCountry = Prompt("Departure country: ");
-        string? dstCountry = Prompt("Destination country: ");
-        string? depAirport = Prompt("Departure airport: ");
-        string? arrAirport = Prompt("Arrival airport: ");
-        DateOnly? depDate = PromptDateOnlyOptional("Departure date (UTC, dd-MM-yyyy): ");
-        TravelClass? travelClass = PromptClassOptional("Class (Economy/Business/First): ");
-        decimal? maxPrice = PromptDecimalOptional("Max price: ");
+        var firstName = ConsolePrompts.Optional("Passenger first name: ");
+        var lastName = ConsolePrompts.Optional("Passenger last name: ");
+        var flightNumber = ConsolePrompts.Optional("Flight number: ");
+        var depCountry = ConsolePrompts.Optional("Departure country: ");
+        var dstCountry = ConsolePrompts.Optional("Destination country: ");
+        var depAirport = ConsolePrompts.Optional("Departure airport: ");
+        var arrAirport = ConsolePrompts.Optional("Arrival airport: ");
+        var depDate = ConsolePrompts.DateOnlyOptional("Departure date (UTC, dd-MM-yyyy): ");
+        var travelClass = ConsolePrompts.ClassOptional("Class (Economy/Business/First): ");
+        var maxPrice = ConsolePrompts.DecimalOptional("Max price: ");
 
         var q = new BookingSearchQuery
         {
@@ -83,52 +81,7 @@ public class ManagerMenu(IFlightService flightService, IBookingService bookingSe
         }
 
         WaitForKeyPress();
-
-        static string? Prompt(string label)
-        {
-            Console.Write(label);
-            var s = Console.ReadLine();
-            return string.IsNullOrWhiteSpace(s) ? null : s.Trim();
-        }
-
-        static DateOnly? PromptDateOnlyOptional(string label)
-        {
-            Console.Write(label);
-            var s = Console.ReadLine();
-            if (string.IsNullOrWhiteSpace(s)) return null;
-            if (DateOnly.TryParseExact(s.Trim(), "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                    out var d))
-                return d;
-
-            Console.WriteLine("  Invalid date. Ignored.");
-            return null;
-        }
-
-        static TravelClass? PromptClassOptional(string label)
-        {
-            Console.Write(label);
-            var s = Console.ReadLine();
-            if (string.IsNullOrWhiteSpace(s)) return null;
-
-            s = s.Trim().ToLowerInvariant();
-            return s switch
-            {
-                "economy" => TravelClass.Economy,
-                "business" => TravelClass.Business,
-                "first" => TravelClass.First,
-                _ => null
-            };
-        }
-
-        static decimal? PromptDecimalOptional(string label)
-        {
-            Console.Write(label);
-            var s = Console.ReadLine();
-            if (string.IsNullOrWhiteSpace(s)) return null;
-            return decimal.TryParse(s.Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out var d) ? d : null;
-        }
     }
-
 
     private async Task ImportFlightsAsync()
     {
