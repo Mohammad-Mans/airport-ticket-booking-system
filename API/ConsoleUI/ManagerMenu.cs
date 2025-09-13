@@ -69,17 +69,7 @@ public class ManagerMenu(IFlightService flightService, IBookingService bookingSe
             return;
         }
 
-        Console.WriteLine($"Found {results.Count} booking(s):\n");
-        foreach (var v in results)
-        {
-            var b = v.Booking;
-            Console.WriteLine(
-                $"[{b.CreatedAt:yyyy-MM-dd HH:mm}] {v.PassengerFirstName} {v.PassengerLastName} | {v.FlightNumber} | " +
-                $"{v.DepartureCountry}:{v.DepartureAirport} -> {v.DestinationCountry}:{v.ArrivalAirport} | {v.DepartureDate:yyyy-MM-dd HH:mm} -> {v.ArrivalDate:yyyy-MM-dd HH:mm}" +
-                $"\n    Class: {b.Class} | Price: {b.Price:C} | Status: {b.Status} | BookingId: {b.Id}");
-            Console.WriteLine("------------------");
-        }
-
+        ConsoleRenderer.BookingSearchResults(results);
         WaitForKeyPress();
     }
 

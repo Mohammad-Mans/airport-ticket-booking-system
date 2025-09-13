@@ -103,7 +103,7 @@ public class PassengerMenu(
             {
                 _currentPassengerId = passenger.Id;
                 Console.WriteLine($"\nWelcome back, {passenger.FirstName} {passenger.LastName}!");
-                Console.WriteLine($"Your Balance: {passenger.Balance:F2}");
+                Console.WriteLine($"Your Balance: ${passenger.Balance:F2}");
             }
         }
         catch (Exception ex)
@@ -141,7 +141,15 @@ public class PassengerMenu(
     {
         Console.WriteLine();
         var rows = await SearchFlightsWithPromptAsync();
-        if (rows is null) return;
+
+        if (rows.Count == 0)
+        {
+            Console.WriteLine(
+                "No flights match your criteria. Try relaxing filters (e.g., clear some fields or increase Max price).");
+            WaitForKeyPress();
+            return;
+        }
+
         WaitForKeyPress();
     }
 
@@ -149,13 +157,19 @@ public class PassengerMenu(
     {
         Console.WriteLine();
         var rows = await SearchFlightsWithPromptAsync();
-        if (rows is null) return;
+
+        if (rows.Count == 0)
+        {
+            Console.WriteLine("No flights to book. Try adjusting your search filters.");
+            WaitForKeyPress();
+            return;
+        }
 
         var idx = ConsolePrompts.Index("\nChoose a flight number to book: ", 1, rows.Count);
         var chosen = rows[idx - 1];
 
         Console.WriteLine("\nChoose class:");
-        for (int i = 0; i < chosen.ClassOptions.Count; i++)
+        for (var i = 0; i < chosen.ClassOptions.Count; i++)
         {
             var o = chosen.ClassOptions[i];
             Console.WriteLine($"{i + 1}. {o.Class} - {o.Price:F2} (Seats:{o.SeatsAvailable})");
@@ -170,7 +184,7 @@ public class PassengerMenu(
                 await bookingService.BookAsync(_currentPassengerId!.Value, chosen.Flight.Id, chosenClass.Class);
             Console.WriteLine($"\nBooked! #{booking.Id}");
             Console.WriteLine(
-                $"Flight: {chosen.Flight.FlightNumber} | Class: {booking.Class} | Price: {booking.Price:F2}");
+                $"Flight: {chosen.Flight.FlightNumber} | Class: {booking.Class} | Price: ${booking.Price:F2}");
         }
         catch (Exception ex)
         {
@@ -193,7 +207,7 @@ public class PassengerMenu(
             }
             else
             {
-                RenderBookings(views);
+                ConsoleRenderer.MyBookings(views);
             }
         }
         catch (Exception ex)
@@ -218,7 +232,7 @@ public class PassengerMenu(
                 return;
             }
 
-            RenderBookings(views);
+            ConsoleRenderer.MyBookings(views);
 
             var idx = ConsolePrompts.Index("\nChoose a booking to cancel: ", 1, views.Count);
             var chosen = views[idx - 1];
@@ -255,7 +269,7 @@ public class PassengerMenu(
                 return;
             }
 
-            RenderBookings(views);
+            ConsoleRenderer.MyBookings(views);
 
             var idx = ConsolePrompts.Index("\nChoose a booking to modify: ", 1, views.Count);
             var chosen = views[idx - 1];
@@ -271,7 +285,7 @@ public class PassengerMenu(
                 Console.WriteLine(
                     $"{chosen.FlightNumber} | " +
                     $"{chosen.FromCountry}:{chosen.FromAirport} -> {chosen.ToCountry}:{chosen.ToAirport} | " +
-                    $"Class: {updated.Class} | Price: {updated.Price:F2}");
+                    $"Class: {updated.Class} | Price: ${updated.Price:F2}");
             }
             catch (Exception ex)
             {
@@ -300,7 +314,7 @@ public class PassengerMenu(
                 return;
             }
 
-            Console.WriteLine($"Your current balance: {balance.Value:F2}");
+            Console.WriteLine($"Your current balance: ${balance.Value:F2}");
 
             if (!ConsolePrompts.Confirm("Would you like to deposit? (y/n): "))
             {
@@ -332,20 +346,7 @@ public class PassengerMenu(
         WaitForKeyPress();
     }
 
-    private static void RenderBookings(IReadOnlyList<BookingView> views)
-    {
-        for (int i = 0; i < views.Count; i++)
-        {
-            var v = views[i];
-            Console.WriteLine(
-                $"{i + 1}. {v.FlightNumber} | " +
-                $"{v.FromCountry}:{v.FromAirport} -> {v.ToCountry}:{v.ToAirport} | " +
-                $"{v.Departure:dd-MM-yyyy HH:mm} -> {v.Arrival:dd-MM-yyyy HH:mm} | " +
-                $"Class: {v.Booking.Class} | Price: {v.Booking.Price:F2}");
-        }
-    }
-
-    private async Task<IReadOnlyList<FlightOption>?> SearchFlightsWithPromptAsync()
+    private async Task<IReadOnlyList<FlightOption>> SearchFlightsWithPromptAsync()
     {
         Console.WriteLine("\nEnter search filters (leave any field blank to skip):");
         var q = BuildSearchQuery();
@@ -353,13 +354,9 @@ public class PassengerMenu(
         var rows = await flightService.SearchAsync(q);
 
         Console.WriteLine();
-        if (rows.Count == 0)
-        {
-            Console.WriteLine("No flights match your criteria.");
-            return null;
-        }
+        if (rows.Count > 0)
+            ConsoleRenderer.Flights(rows);
 
-        RenderFlights(rows);
         return rows;
     }
 
@@ -375,20 +372,4 @@ public class PassengerMenu(
             MaxPrice = ConsolePrompts.DecimalOptional("Max price: "),
             OnlyWithSeats = true
         };
-
-    private static void RenderFlights(IReadOnlyList<FlightOption> rows)
-    {
-        for (int i = 0; i < rows.Count; i++)
-        {
-            var o = rows[i];
-            var classSummary = string.Join(" | ",
-                o.ClassOptions.Select(co => $"{co.Class}:{co.Price:F2}$ (Seats:{co.SeatsAvailable})"));
-
-            Console.WriteLine(
-                $"{i + 1}. {o.Flight.FlightNumber} | " +
-                $"{o.Flight.DepartureCountry}:{o.Flight.DepartureAirport} -> {o.Flight.DestinationCountry}:{o.Flight.ArrivalAirport} | " +
-                $"{o.Flight.DepartureDate:dd-MM-yyyy HH:mm} | " +
-                $"{classSummary}");
-        }
-    }
 }
