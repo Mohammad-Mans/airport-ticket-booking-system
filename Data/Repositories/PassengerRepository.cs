@@ -33,18 +33,6 @@ public class PassengerRepository(string filePath) : BaseCsvRepository<Passenger>
         return passenger;
     }
 
-    public async Task<Passenger> UpdateAsync(Passenger passenger)
-    {
-        var all = await ReadAllAsync();
-        var idx = all.FindIndex(p => p.Id == passenger.Id);
-        if (idx < 0)
-            throw new InvalidOperationException("Passenger not found.");
-
-        all[idx] = passenger;
-        await WriteAllAsync(all);
-        return passenger;
-    }
-
     public async Task<bool> TryAdjustBalanceAsync(Guid passengerId, decimal delta)
     {
         var all = await ReadAllAsync();
