@@ -1,5 +1,6 @@
 using ATBS.Domain.Entities;
 using ATBS.Domain.Interfaces;
+using ATBS.Domain.Utils;
 
 namespace ATBS.Domain.Services;
 
@@ -7,7 +8,7 @@ public class PassengerService(IPassengerRepository passengerRepository) : IPasse
 {
     public async Task<Passenger> AddPassengerAsync(string firstName, string lastName, decimal initialBalance = 0m)
     {
-        var (normalizedFirst, normalizedLast) = NormalizeNames(firstName, lastName);
+        var (normalizedFirst, normalizedLast) = PassengerUtils.NormalizeNames(firstName, lastName);
 
         var existing = await passengerRepository.FindByNameAsync(normalizedFirst, normalizedLast);
         if (existing != null)
@@ -25,7 +26,7 @@ public class PassengerService(IPassengerRepository passengerRepository) : IPasse
 
     public async Task<Passenger?> GetByNameAsync(string firstName, string lastName)
     {
-        var (normalizedFirst, normalizedLast) = NormalizeNames(firstName, lastName);
+        var (normalizedFirst, normalizedLast) = PassengerUtils.NormalizeNames(firstName, lastName);
         return await passengerRepository.FindByNameAsync(normalizedFirst, normalizedLast);
     }
 
@@ -41,13 +42,4 @@ public class PassengerService(IPassengerRepository passengerRepository) : IPasse
         return await passengerRepository.TryAdjustBalanceAsync(passengerId, amount);
     }
 
-    private static (string normalizedFirst, string normalizedLast) NormalizeNames(string firstName, string lastName)
-    {
-        if (string.IsNullOrWhiteSpace(firstName))
-            throw new ArgumentException("First name is required.", nameof(firstName));
-        if (string.IsNullOrWhiteSpace(lastName))
-            throw new ArgumentException("Last name is required.", nameof(lastName));
-
-        return (firstName.Trim(), lastName.Trim());
-    }
 }
