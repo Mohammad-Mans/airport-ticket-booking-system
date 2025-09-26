@@ -7,8 +7,19 @@ namespace ATBS.Data.Repositories;
 public class FlightRepository(string filePath)
     : BaseCsvRepository<Flight>(filePath), IFlightRepository
 {
-    protected override string Header =>
-        "Id,FlightNumber,DepartureAirport,DepartureCountry,DepartureDate,ArrivalAirport,DestinationCountry,ArrivalDate";
+    private static readonly string[] ColumnNames =
+    [
+        nameof(Flight.Id),
+        nameof(Flight.FlightNumber),
+        nameof(Flight.DepartureAirport),
+        nameof(Flight.DepartureCountry),
+        nameof(Flight.DepartureDate),
+        nameof(Flight.ArrivalAirport),
+        nameof(Flight.DestinationCountry),
+        nameof(Flight.ArrivalDate)
+    ];
+
+    protected override string HeadersRow => string.Join(",", ColumnNames);
 
     public async Task<IReadOnlyList<Flight>> GetAllAsync()
         => await ReadAllAsync();

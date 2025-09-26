@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace ATBS.Data.Repositories;
 
 public abstract class BaseCsvRepository<T> where T : class
@@ -12,7 +10,7 @@ public abstract class BaseCsvRepository<T> where T : class
         EnsureFileExists();
     }
 
-    protected abstract string Header { get; }
+    protected abstract string HeadersRow { get; }
     protected abstract T Parse(string line);
     protected abstract string Serialize(T item);
 
@@ -25,7 +23,7 @@ public abstract class BaseCsvRepository<T> where T : class
         if (!File.Exists(_filePath))
         {
             using var sw = new StreamWriter(_filePath, false);
-            sw.WriteLine(Header);
+            sw.WriteLine(HeadersRow);
         }
     }
 
@@ -62,7 +60,7 @@ public abstract class BaseCsvRepository<T> where T : class
     protected async Task WriteAllAsync(IEnumerable<T> items)
     {
         await using var sw = new StreamWriter(_filePath, append: false);
-        await sw.WriteLineAsync(Header);
+        await sw.WriteLineAsync(HeadersRow);
         foreach (var item in items)
             await sw.WriteLineAsync(Serialize(item));
     }
