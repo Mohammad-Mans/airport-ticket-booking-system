@@ -113,10 +113,10 @@ public class BookingService(
         var passenger = await RequirePassengerAsync(booking.PassengerId);
         var flight = await RequireFlightAsync(booking.FlightId);
 
-        var oldFc = await RequireFlightClassAsync(flight.Id, booking.Class);
-        var newFc = await RequireFlightClassAsync(flight.Id, newClass);
+        var oldFlightClass = await RequireFlightClassAsync(flight.Id, booking.Class);
+        var newFlightClass = await RequireFlightClassAsync(flight.Id, newClass);
 
-        var delta = newFc.Price - oldFc.Price;
+        var priceDifference = newFlightClass.Price - oldFlightClass.Price;
 
         await ReserveNewSeatOrThrow();
         await AdjustBalanceOrThrow();
@@ -124,7 +124,7 @@ public class BookingService(
         await PersistBookingOrThrow();
 
         booking.Class = newClass;
-        booking.Price = newFc.Price;
+        booking.Price = newFlightClass.Price;
         return booking;
 
         async Task ReserveNewSeatOrThrow()
@@ -136,14 +136,14 @@ public class BookingService(
 
         async Task AdjustBalanceOrThrow()
         {
-            if (delta == 0m) return;
+            if (priceDifference == 0m) return;
 
-            var isBalanceAdjusted = await passengerRepo.TryAdjustBalanceAsync(passenger.Id, -delta);
+            var isBalanceAdjusted = await passengerRepo.TryAdjustBalanceAsync(passenger.Id, -priceDifference);
             if (!isBalanceAdjusted)
             {
                 await flightClassRepo.TryReleaseSeatAsync(flight.Id, newClass);
                 throw new InvalidOperationException(
-                    delta > 0 ? "Insufficient balance for upgrade." : "Refund failed.");
+                    priceDifference > 0 ? "Insufficient balance for upgrade." : "Refund failed.");
             }
         }
 
@@ -152,7 +152,7 @@ public class BookingService(
             var isSeatReleased = await flightClassRepo.TryReleaseSeatAsync(flight.Id, booking.Class);
             if (!isSeatReleased)
             {
-                if (delta != 0m) await passengerRepo.TryAdjustBalanceAsync(passenger.Id, +delta);
+                if (priceDifference != 0m) await passengerRepo.TryAdjustBalanceAsync(passenger.Id, +priceDifference);
                 await flightClassRepo.TryReleaseSeatAsync(flight.Id, newClass);
                 throw new InvalidOperationException("Failed to release previous seat.");
             }
@@ -160,12 +160,13 @@ public class BookingService(
 
         async Task PersistBookingOrThrow()
         {
-            var isBookingUpdated = await bookingRepo.UpdateClassAndPriceAsync(booking.Id, newClass, newFc.Price);
+            var isBookingUpdated =
+                await bookingRepo.UpdateClassAndPriceAsync(booking.Id, newClass, newFlightClass.Price);
             if (!isBookingUpdated)
             {
                 await flightClassRepo.TryReserveSeatAsync(flight.Id, booking.Class);
                 await flightClassRepo.TryReleaseSeatAsync(flight.Id, newClass);
-                if (delta != 0m) await passengerRepo.TryAdjustBalanceAsync(passenger.Id, +delta);
+                if (priceDifference != 0m) await passengerRepo.TryAdjustBalanceAsync(passenger.Id, +priceDifference);
                 throw new InvalidOperationException("Failed to update booking.");
             }
         }
@@ -235,7 +236,8 @@ public class BookingService(
                 (wantedClass is null || b.Class == wantedClass) &&
                 (!maxPrice.HasValue || b.Price <= maxPrice.Value) &&
                 (departureCountry is null || StringUtils.EqualsIgnoreCase(f.DepartureCountry, departureCountry)) &&
-                (destinationCountry is null || StringUtils.EqualsIgnoreCase(f.DestinationCountry, destinationCountry)) &&
+                (destinationCountry is null ||
+                 StringUtils.EqualsIgnoreCase(f.DestinationCountry, destinationCountry)) &&
                 (departureAirport is null || StringUtils.EqualsIgnoreCase(f.DepartureAirport, departureAirport)) &&
                 (arrivalAirport is null || StringUtils.EqualsIgnoreCase(f.ArrivalAirport, arrivalAirport)) &&
                 (!departureDate.HasValue || DateOnly.FromDateTime(departureUtc) == departureDate.Value);

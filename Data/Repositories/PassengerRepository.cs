@@ -33,14 +33,14 @@ public class PassengerRepository(string filePath) : BaseCsvRepository<Passenger>
         return passenger;
     }
 
-    public async Task<bool> TryAdjustBalanceAsync(Guid passengerId, decimal delta)
+    public async Task<bool> TryAdjustBalanceAsync(Guid passengerId, decimal amount)
     {
         var all = await ReadAllAsync();
         var idx = all.FindIndex(p => p.Id == passengerId);
         if (idx < 0) return false;
 
         var p = all[idx];
-        var newBalance = p.Balance + delta;
+        var newBalance = p.Balance + amount;
         if (newBalance < 0) return false;
 
         p.Balance = newBalance;
