@@ -172,9 +172,14 @@ public class BookingService(
 
     public async Task<IReadOnlyList<BookingSearchView>> SearchAsync(BookingSearchQuery q)
     {
-        var bookings = await bookingRepo.GetAllAsync();
-        var flights = await flightRepo.GetAllAsync();
-        var passengers = await passengerRepo.GetAllAsync();
+        var bookingsTask = bookingRepo.GetAllAsync();
+        var flightsTask = flightRepo.GetAllAsync();
+        var passengersTask = passengerRepo.GetAllAsync();
+        await Task.WhenAll(bookingsTask, flightsTask, passengersTask);
+
+        var bookings = await bookingsTask;
+        var flights = await flightsTask;
+        var passengers = await passengersTask;
 
         var firstName = Norm(q.PassengerFirstName);
         var lastName = Norm(q.PassengerLastName);
