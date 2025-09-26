@@ -1,3 +1,5 @@
+using ATBS.API.Bookings.Queries;
+using ATBS.API.Bookings.Views;
 using ATBS.Domain.Entities;
 using ATBS.Domain.Enums;
 using ATBS.Domain.Interfaces;

@@ -1,3 +1,4 @@
+using ATBS.API.Bookings.Views;
 using ATBS.Domain.Interfaces;
 
 namespace ATBS.API.ConsoleUI;

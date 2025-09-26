@@ -1,3 +1,4 @@
+using ATBS.API.Bookings.Queries;
 using ATBS.API.Validation;
 using ATBS.Domain.Entities;
 using ATBS.Domain.Interfaces;
