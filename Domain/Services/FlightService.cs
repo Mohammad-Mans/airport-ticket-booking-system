@@ -3,6 +3,7 @@ using ATBS.API.Flights.Views;
 using ATBS.Domain.Entities;
 using ATBS.Domain.Enums;
 using ATBS.Domain.Interfaces;
+using ATBS.Domain.Utils;
 using ATBS.Utils;
 
 namespace ATBS.Domain.Services;
@@ -51,7 +52,8 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
             (destinationCountry is null || StringUtils.EqualsIgnoreCase(f.DestinationCountry, destinationCountry)) &&
             (departureAirport is null || StringUtils.EqualsIgnoreCase(f.DepartureAirport, departureAirport)) &&
             (arrivalAirport is null || StringUtils.EqualsIgnoreCase(f.ArrivalAirport, arrivalAirport)) &&
-            (!departureDate.HasValue || DateOnly.FromDateTime(f.DepartureDate.ToUniversalTime()) == departureDate.Value);
+            (!departureDate.HasValue ||
+             DateOnly.FromDateTime(f.DepartureDate.ToUniversalTime()) == departureDate.Value);
 
         bool ClassMatchesQuery(FlightClass c) =>
             (!requireSeats || c.SeatsAvailable > 0) &&
@@ -72,7 +74,8 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
         var result = new FlightImportResult();
 
         var existingFlights = await flightRepo.GetAllAsync();
-        var byKey = existingFlights.ToDictionary(ComputeFlightKey, f => f, StringComparer.OrdinalIgnoreCase);
+        var byKey = existingFlights.ToDictionary(FlightUtils.ComputeFlightKey, f => f,
+            StringComparer.OrdinalIgnoreCase);
 
         var newFlights = new List<Flight>();
         var newClasses = new List<FlightClass>();
@@ -153,12 +156,12 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
 
     private static Flight ParseFlightCore(string[] p)
     {
-        var flightNumber = Require(p[0], "FlightNumber");
-        var departureAirport = Require(p[1], "DepartureAirport");
-        var departureCountry = Require(p[2], "DepartureCountry");
+        var flightNumber = FlightUtils.RequireNonEmpty(p[0], "FlightNumber");
+        var departureAirport = FlightUtils.RequireNonEmpty(p[1], "DepartureAirport");
+        var departureCountry = FlightUtils.RequireNonEmpty(p[2], "DepartureCountry");
         var departureUtc = ParsingUtils.ParseUtc(p[3], "DepartureDate");
-        var arrivalAirport = Require(p[4], "ArrivalAirport");
-        var destinationCountry = Require(p[5], "DestinationCountry");
+        var arrivalAirport = FlightUtils.RequireNonEmpty(p[4], "ArrivalAirport");
+        var destinationCountry = FlightUtils.RequireNonEmpty(p[5], "DestinationCountry");
         var arrivalUtc = ParsingUtils.ParseUtc(p[6], "ArrivalDate");
 
         if (arrivalUtc <= departureUtc)
@@ -209,7 +212,7 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
 
     private static Flight Deduplicate(Dictionary<string, Flight> byKey, Flight incoming)
     {
-        var key = ComputeFlightKey(incoming);
+        var key = FlightUtils.ComputeFlightKey(incoming);
         if (byKey.TryGetValue(key, out var existing))
         {
             return new Flight
@@ -238,10 +241,4 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
             else await flightRepo.AddAsync(f);
         }
     }
-
-    private static string Require(string s, string name)
-        => string.IsNullOrWhiteSpace(s) ? throw new ArgumentException($"{name} is required.") : s.Trim();
-
-    private static string ComputeFlightKey(Flight f)
-        => $"{f.FlightNumber}|{f.DepartureAirport}|{f.ArrivalAirport}|{f.DepartureDate:O}";
 }
