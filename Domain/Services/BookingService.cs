@@ -194,41 +194,35 @@ public class BookingService(
         var wantedClass = q.Class;
         var maxPrice = q.MaxPrice;
 
-        var result =
-            bookings
-                .Join(flights,
-                    b => b.FlightId,
-                    f => f.Id,
-                    (b, f) => new { Booking = b, Flight = f }
-                )
-                .Join(passengers,
-                    bf => bf.Booking.PassengerId,
-                    p => p.Id,
-                    (bf, p) => new { bf.Booking, bf.Flight, Passenger = p }
-                )
-                .Where(x => BookingMatchesQuery(x.Booking, x.Flight, x.Passenger)
-                )
-                .OrderByDescending(x => x.Booking.CreatedAt)
-                .Select(x => new BookingSearchView(
-                    x.Booking,
-                    x.Flight.FlightNumber,
-                    x.Flight.DepartureAirport,
-                    x.Flight.DepartureCountry,
-                    x.Flight.ArrivalAirport,
-                    x.Flight.DestinationCountry,
-                    x.Flight.DepartureDate,
-                    x.Flight.ArrivalDate,
-                    x.Passenger.FirstName,
-                    x.Passenger.LastName
-                ))
-                .ToList();
+        return QueryBookings(
+            bookings,
+            flights,
+            passengers,
+            firstName,
+            lastName,
+            flightNumber,
+            departureCountry,
+            destinationCountry,
+            departureAirport,
+            arrivalAirport,
+            departureDate,
+            wantedClass,
+            maxPrice
+        ).ToList();
+    }
 
-        return result;
-
-        bool BookingMatchesQuery(Booking b, Flight f, Passenger p)
+    private static IEnumerable<BookingSearchView> QueryBookings(
+        IEnumerable<Booking> bookings,
+        IEnumerable<Flight> flights,
+        IEnumerable<Passenger> passengers,
+        string? firstName, string? lastName, string? flightNumber,
+        string? departureCountry, string? destinationCountry,
+        string? departureAirport, string? arrivalAirport,
+        DateOnly? departureDate, TravelClass? wantedClass, decimal? maxPrice)
+    {
+        bool Matches(Booking b, Flight f, Passenger p)
         {
-            var departureUtc = f.DepartureDate.ToUniversalTime();
-
+            var depUtc = f.DepartureDate.ToUniversalTime();
             return
                 (firstName is null || StringUtils.EqualsIgnoreCase(p.FirstName, firstName)) &&
                 (lastName is null || StringUtils.EqualsIgnoreCase(p.LastName, lastName)) &&
@@ -240,8 +234,33 @@ public class BookingService(
                  StringUtils.EqualsIgnoreCase(f.DestinationCountry, destinationCountry)) &&
                 (departureAirport is null || StringUtils.EqualsIgnoreCase(f.DepartureAirport, departureAirport)) &&
                 (arrivalAirport is null || StringUtils.EqualsIgnoreCase(f.ArrivalAirport, arrivalAirport)) &&
-                (!departureDate.HasValue || DateOnly.FromDateTime(departureUtc) == departureDate.Value);
+                (!departureDate.HasValue || DateOnly.FromDateTime(depUtc) == departureDate.Value);
         }
+
+        return bookings
+            .Join(
+                flights,
+                b => b.FlightId,
+                f => f.Id,
+                (b, f) => new { b, f })
+            .Join(passengers,
+                bf => bf.b.PassengerId,
+                p => p.Id,
+                (bf, p) => new { bf.b, bf.f, p })
+            .Where(x => Matches(x.b, x.f, x.p))
+            .OrderByDescending(x => x.b.CreatedAt)
+            .Select(x => new BookingSearchView(
+                x.b,
+                x.f.FlightNumber,
+                x.f.DepartureAirport,
+                x.f.DepartureCountry,
+                x.f.ArrivalAirport,
+                x.f.DestinationCountry,
+                x.f.DepartureDate,
+                x.f.ArrivalDate,
+                x.p.FirstName,
+                x.p.LastName
+            ));
     }
 
     private async Task<Passenger> RequirePassengerAsync(Guid id) =>
