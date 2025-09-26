@@ -1,11 +1,12 @@
 using ATBS.API.Bookings.Views;
+using ATBS.API.Flights.Views;
 using ATBS.Domain.Interfaces;
 
 namespace ATBS.API.ConsoleUI;
 
 public static class ConsoleRenderer
 {
-    public static void Flights(IReadOnlyList<FlightOption> rows)
+    public static void Flights(IReadOnlyList<FlightSearchView> rows)
     {
         for (var i = 0; i < rows.Count; i++)
         {

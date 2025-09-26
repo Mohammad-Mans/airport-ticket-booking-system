@@ -1,3 +1,5 @@
+using ATBS.API.Flights.Queries;
+using ATBS.API.Flights.Views;
 using ATBS.Domain.Interfaces;
 
 namespace ATBS.API.ConsoleUI;
@@ -346,7 +348,7 @@ public class PassengerMenu(
         WaitForKeyPress();
     }
 
-    private async Task<IReadOnlyList<FlightOption>> SearchFlightsWithPromptAsync()
+    private async Task<IReadOnlyList<FlightSearchView>> SearchFlightsWithPromptAsync()
     {
         Console.WriteLine("\nEnter search filters (leave any field blank to skip):");
         var q = BuildSearchQuery();

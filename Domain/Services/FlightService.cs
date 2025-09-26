@@ -1,4 +1,6 @@
 using System.Globalization;
+using ATBS.API.Flights.Queries;
+using ATBS.API.Flights.Views;
 using ATBS.Domain.Entities;
 using ATBS.Domain.Enums;
 using ATBS.Domain.Interfaces;
@@ -8,7 +10,7 @@ namespace ATBS.Domain.Services;
 public class FlightService(IFlightRepository flightRepo, IFlightClassRepository classRepo)
     : IFlightService
 {
-    public async Task<IReadOnlyList<FlightOption>> SearchAsync(FlightSearchQuery q)
+    public async Task<IReadOnlyList<FlightSearchView>> SearchAsync(FlightSearchQuery q)
     {
         var flights = await flightRepo.GetAllAsync();
         var classes = await classRepo.GetAllAsync();
@@ -39,7 +41,7 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
                 return new { x.Flight, Filtered = filteredClasses };
             })
             .Where(r => r.Filtered.Count > 0)
-            .Select(r => new FlightOption(r.Flight, r.Filtered))
+            .Select(r => new FlightSearchView(r.Flight, r.Filtered))
             .ToList();
 
         return results;
