@@ -171,10 +171,12 @@ public class PassengerMenu(
         var chosen = rows[idx - 1];
 
         Console.WriteLine("\nChoose class:");
-        for (var i = 0; i < chosen.ClassOptions.Count; i++)
+        var index = 0;
+        foreach (var classOption in chosen.ClassOptions)
         {
-            var o = chosen.ClassOptions[i];
-            Console.WriteLine($"{i + 1}. {o.Class} - {o.Price:F2} (Seats:{o.SeatsAvailable})");
+            Console.WriteLine(
+                $"{index + 1}. {classOption.Class} - {classOption.Price:F2} (Seats:{classOption.SeatsAvailable})");
+            index++;
         }
 
         var classIdx = ConsolePrompts.Index("Class option: ", 1, chosen.ClassOptions.Count);

@@ -8,41 +8,44 @@ public static class ConsoleRenderer
 {
     public static void Flights(IReadOnlyList<FlightSearchView> rows)
     {
-        for (var i = 0; i < rows.Count; i++)
+        var index = 0;
+        foreach (var flightView in rows)
         {
-            var o = rows[i];
             Console.WriteLine(
-                $"{i + 1}. {o.Flight.FlightNumber} | " +
-                $"{FormatRoute(o.Flight.DepartureCountry, o.Flight.DepartureAirport, o.Flight.DestinationCountry, o.Flight.ArrivalAirport)} | " +
-                $"{o.Flight.DepartureDate:dd-MM-yyyy HH:mm} | " +
-                $"{FormatClassSummary(o.ClassOptions)}");
+                $"{index + 1}. {flightView.Flight.FlightNumber} | " +
+                $"{FormatRoute(flightView.Flight.DepartureCountry, flightView.Flight.DepartureAirport, flightView.Flight.DestinationCountry, flightView.Flight.ArrivalAirport)} | " +
+                $"{flightView.Flight.DepartureDate:dd-MM-yyyy HH:mm} | " +
+                $"{FormatClassSummary(flightView.ClassOptions)}");
+            index++;
         }
     }
 
     public static void MyBookings(IReadOnlyList<BookingView> views)
     {
-        for (var i = 0; i < views.Count; i++)
+        var index = 0;
+        foreach (var bookingView in views)
         {
-            var v = views[i];
             Console.WriteLine(
-                $"{i + 1}. {v.FlightNumber} | " +
-                $"{FormatRoute(v.FromCountry, v.FromAirport, v.ToCountry, v.ToAirport)} | " +
-                $"{v.Departure:dd-MM-yyyy HH:mm} -> {v.Arrival:dd-MM-yyyy HH:mm} | " +
-                $"Class: {v.Booking.Class} | Price: ${v.Booking.Price}");
+                $"{index + 1}. {bookingView.FlightNumber} | " +
+                $"{FormatRoute(bookingView.FromCountry, bookingView.FromAirport, bookingView.ToCountry, bookingView.ToAirport)} | " +
+                $"{bookingView.Departure:dd-MM-yyyy HH:mm} -> {bookingView.Arrival:dd-MM-yyyy HH:mm} | " +
+                $"Class: {bookingView.Booking.Class} | Price: ${bookingView.Booking.Price}");
+            index++;
         }
     }
 
     public static void BookingSearchResults(IReadOnlyList<BookingSearchView> results)
     {
         Console.WriteLine($"Found {results.Count} booking(s):\n");
-        foreach (var v in results)
+        foreach (var searchResult in results)
         {
-            var b = v.Booking;
+            var booking = searchResult.Booking;
             Console.WriteLine(
-                $"[{b.CreatedAt:dd-MM-yyyy HH:mm}] {v.PassengerFirstName} {v.PassengerLastName} | {v.FlightNumber} | " +
-                $"{FormatRoute(v.DepartureCountry, v.DepartureAirport, v.DestinationCountry, v.ArrivalAirport)} | " +
-                $"{v.DepartureDate:dd-MM-yyyy HH:mm} -> {v.ArrivalDate:dd-MM-yyyy HH:mm}");
-            Console.WriteLine($"    Class: {b.Class} | Price: ${b.Price} | Status: {b.Status} | BookingId: {b.Id}");
+                $"[{booking.CreatedAt:dd-MM-yyyy HH:mm}] {searchResult.PassengerFirstName} {searchResult.PassengerLastName} | {searchResult.FlightNumber} | " +
+                $"{FormatRoute(searchResult.DepartureCountry, searchResult.DepartureAirport, searchResult.DestinationCountry, searchResult.ArrivalAirport)} | " +
+                $"{searchResult.DepartureDate:dd-MM-yyyy HH:mm} -> {searchResult.ArrivalDate:dd-MM-yyyy HH:mm}");
+            Console.WriteLine(
+                $"    Class: {booking.Class} | Price: ${booking.Price} | Status: {booking.Status} | BookingId: {booking.Id}");
             Console.WriteLine("------------------");
         }
     }
