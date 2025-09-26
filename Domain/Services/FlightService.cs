@@ -59,9 +59,14 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
             (!maxPrice.HasValue || c.Price <= maxPrice.Value);
     }
 
-    // Expected manager CSV header:
-    // FlightNumber,DepartureAirport,DepartureDate,DepartureCountry,ArrivalAirport,DestinationCountry,ArrivalDate,
-    // EconomyPrice,BusinessPrice,FirstPrice,EconomyCapacity,BusinessCapacity,FirstCapacity
+    private static readonly string[] ExpectedCsvHeaders =
+    [
+        "FlightNumber", "DepartureAirport", "DepartureCountry", "DepartureDate",
+        "ArrivalAirport", "DestinationCountry", "ArrivalDate",
+        "EconomyPrice", "BusinessPrice", "FirstPrice",
+        "EconomyCapacity", "BusinessCapacity", "FirstCapacity"
+    ];
+
     public async Task<FlightImportResult> ImportFromCsvAsync(string csvPath)
     {
         var result = new FlightImportResult();
@@ -73,10 +78,11 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
         var newClasses = new List<FlightClass>();
 
         using var sr = new StreamReader(csvPath);
+        var expectedColumnsCount = ExpectedCsvHeaders.Length;
         if (!await ReadAndValidateHeaderAsync(sr, result)) return result;
 
         string? line;
-        int row = 1;
+        var row = 1;
         while ((line = await sr.ReadLineAsync()) is not null)
         {
             row++;
@@ -85,8 +91,9 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
             try
             {
                 var lineData = line.Split(',', StringSplitOptions.TrimEntries);
-                if (lineData.Length < 13)
-                    throw new FormatException("Invalid column count.");
+                if (lineData.Length < expectedColumnsCount)
+                    throw new FormatException(
+                        $"Invalid column count. Expected {expectedColumnsCount} columns but found {lineData.Length}.");
 
                 var flightVals = ParseFlightCore(lineData);
                 flightVals = Deduplicate(byKey, flightVals);
@@ -120,6 +127,25 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
         {
             result.Errors.Add((1, "File is empty."));
             return false;
+        }
+
+        var headerColumns = header.Split(',', StringSplitOptions.TrimEntries);
+        var expectedColumnsCount = ExpectedCsvHeaders.Length;
+        if (headerColumns.Length != expectedColumnsCount)
+        {
+            result.Errors.Add((1,
+                $"Invalid header column count. Expected {expectedColumnsCount} columns but found {headerColumns.Length}."));
+            return false;
+        }
+
+        for (var i = 0; i < expectedColumnsCount; i++)
+        {
+            if (!StringUtils.EqualsIgnoreCase(headerColumns[i], ExpectedCsvHeaders[i]))
+            {
+                result.Errors.Add((1,
+                    $"Invalid header at column {i + 1}. Expected '{ExpectedCsvHeaders[i]}' but found '{headerColumns[i]}'."));
+                return false;
+            }
         }
 
         return true;
