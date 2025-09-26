@@ -1,9 +1,9 @@
-using System.Globalization;
 using ATBS.API.Flights.Queries;
 using ATBS.API.Flights.Views;
 using ATBS.Domain.Entities;
 using ATBS.Domain.Enums;
 using ATBS.Domain.Interfaces;
+using ATBS.Utils;
 
 namespace ATBS.Domain.Services;
 
@@ -15,10 +15,10 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
         var flights = await flightRepo.GetAllAsync();
         var classes = await classRepo.GetAllAsync();
 
-        var depCountry = Norm(q.DepartureCountry);
-        var dstCountry = Norm(q.DestinationCountry);
-        var depAirport = Norm(q.DepartureAirport);
-        var arrAirport = Norm(q.ArrivalAirport);
+        var depCountry = StringUtils.Normalize(q.DepartureCountry);
+        var dstCountry = StringUtils.Normalize(q.DestinationCountry);
+        var depAirport = StringUtils.Normalize(q.DepartureAirport);
+        var arrAirport = StringUtils.Normalize(q.ArrivalAirport);
         var depDate = q.DepartureDateUtc;
         var requireSeats = q.OnlyWithSeats;
         var wantedClass = q.Class;
@@ -46,17 +46,11 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
 
         return results;
 
-        static string? Norm(string? s) =>
-            string.IsNullOrWhiteSpace(s) ? null : s.Trim();
-
-        static bool Eq(string a, string b) =>
-            string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
-
         bool FlightMatchesQuery(Flight f) =>
-            (depCountry is null || Eq(f.DepartureCountry, depCountry)) &&
-            (dstCountry is null || Eq(f.DestinationCountry, dstCountry)) &&
-            (depAirport is null || Eq(f.DepartureAirport, depAirport)) &&
-            (arrAirport is null || Eq(f.ArrivalAirport, arrAirport)) &&
+            (depCountry is null || StringUtils.EqualsIgnoreCase(f.DepartureCountry, depCountry)) &&
+            (dstCountry is null || StringUtils.EqualsIgnoreCase(f.DestinationCountry, dstCountry)) &&
+            (depAirport is null || StringUtils.EqualsIgnoreCase(f.DepartureAirport, depAirport)) &&
+            (arrAirport is null || StringUtils.EqualsIgnoreCase(f.ArrivalAirport, arrAirport)) &&
             (!depDate.HasValue || DateOnly.FromDateTime(f.DepartureDate.ToUniversalTime()) == depDate.Value);
 
         bool ClassMatchesQuery(FlightClass c) =>
@@ -136,10 +130,10 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
         var flightNumber = Require(p[0], "FlightNumber");
         var depAirport = Require(p[1], "DepartureAirport");
         var depCountry = Require(p[2], "DepartureCountry");
-        var depUtc = ParseUtc(p[3], "DepartureDate");
+        var depUtc = ParsingUtils.ParseUtc(p[3], "DepartureDate");
         var arrAirport = Require(p[4], "ArrivalAirport");
         var dstCountry = Require(p[5], "DestinationCountry");
-        var arrUtc = ParseUtc(p[6], "ArrivalDate");
+        var arrUtc = ParsingUtils.ParseUtc(p[6], "ArrivalDate");
 
         if (arrUtc <= depUtc)
             throw new ArgumentException("ArrivalDate must be after DepartureDate.");
@@ -174,8 +168,8 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
         if (string.IsNullOrWhiteSpace(priceStr) || string.IsNullOrWhiteSpace(capStr))
             return;
 
-        var price = ParseDecimalNonNegative(priceStr, $"{cls}Price");
-        var cap = ParseIntNonNegative(capStr, $"{cls}Capacity");
+        var price = ParsingUtils.ParseDecimalNonNegative(priceStr, $"{cls}Price");
+        var cap = ParsingUtils.ParseIntNonNegative(capStr, $"{cls}Capacity");
 
         classes.Add(new FlightClass
         {
@@ -221,30 +215,6 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
 
     private static string Require(string s, string name)
         => string.IsNullOrWhiteSpace(s) ? throw new ArgumentException($"{name} is required.") : s.Trim();
-
-    private static DateTime ParseUtc(string s, string name)
-    {
-        var styles = DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal;
-        if (DateTime.TryParseExact(s, "O", CultureInfo.InvariantCulture, styles, out var dt)) return dt;
-        if (DateTime.TryParse(s, CultureInfo.InvariantCulture, styles, out dt)) return dt;
-        throw new FormatException($"{name} is not a valid UTC/ISO date.");
-    }
-
-    private static decimal ParseDecimalNonNegative(string s, string name)
-    {
-        if (!decimal.TryParse(s, NumberStyles.Number, CultureInfo.InvariantCulture, out var d))
-            throw new FormatException($"{name} is not a valid number.");
-        if (d < 0) throw new ArgumentOutOfRangeException(name, $"{name} cannot be negative.");
-        return d;
-    }
-
-    private static int ParseIntNonNegative(string s, string name)
-    {
-        if (!int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var i))
-            throw new FormatException($"{name} is not a valid integer.");
-        if (i < 0) throw new ArgumentOutOfRangeException(name, $"{name} cannot be negative.");
-        return i;
-    }
 
     private static string ComputeFlightKey(Flight f)
         => $"{f.FlightNumber}|{f.DepartureAirport}|{f.ArrivalAirport}|{f.DepartureDate:O}";

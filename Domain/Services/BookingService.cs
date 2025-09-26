@@ -3,6 +3,7 @@ using ATBS.API.Bookings.Views;
 using ATBS.Domain.Entities;
 using ATBS.Domain.Enums;
 using ATBS.Domain.Interfaces;
+using ATBS.Utils;
 
 namespace ATBS.Domain.Services;
 
@@ -181,13 +182,13 @@ public class BookingService(
         var flights = await flightsTask;
         var passengers = await passengersTask;
 
-        var firstName = Norm(q.PassengerFirstName);
-        var lastName = Norm(q.PassengerLastName);
-        var flightNumber = Norm(q.FlightNumber);
-        var depCountry = Norm(q.DepartureCountry);
-        var dstCountry = Norm(q.DestinationCountry);
-        var depAirport = Norm(q.DepartureAirport);
-        var arrAirport = Norm(q.ArrivalAirport);
+        var firstName = StringUtils.Normalize(q.PassengerFirstName);
+        var lastName = StringUtils.Normalize(q.PassengerLastName);
+        var flightNumber = StringUtils.Normalize(q.FlightNumber);
+        var depCountry = StringUtils.Normalize(q.DepartureCountry);
+        var dstCountry = StringUtils.Normalize(q.DestinationCountry);
+        var depAirport = StringUtils.Normalize(q.DepartureAirport);
+        var arrAirport = StringUtils.Normalize(q.ArrivalAirport);
         var depDate = q.DepartureDateUtc;
         var wantedClass = q.Class;
         var maxPrice = q.MaxPrice;
@@ -223,26 +224,20 @@ public class BookingService(
 
         return result;
 
-        static string? Norm(string? s) =>
-            string.IsNullOrWhiteSpace(s) ? null : s.Trim();
-
-        static bool Eq(string a, string b) =>
-            string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
-
         bool BookingMatchesQuery(Booking b, Flight f, Passenger p)
         {
             var depUtc = f.DepartureDate.ToUniversalTime();
 
             return
-                (firstName is null || Eq(p.FirstName, firstName)) &&
-                (lastName is null || Eq(p.LastName, lastName)) &&
-                (flightNumber is null || Eq(f.FlightNumber, flightNumber)) &&
+                (firstName is null || StringUtils.EqualsIgnoreCase(p.FirstName, firstName)) &&
+                (lastName is null || StringUtils.EqualsIgnoreCase(p.LastName, lastName)) &&
+                (flightNumber is null || StringUtils.EqualsIgnoreCase(f.FlightNumber, flightNumber)) &&
                 (wantedClass is null || b.Class == wantedClass) &&
                 (!maxPrice.HasValue || b.Price <= maxPrice.Value) &&
-                (depCountry is null || Eq(f.DepartureCountry, depCountry)) &&
-                (dstCountry is null || Eq(f.DestinationCountry, dstCountry)) &&
-                (depAirport is null || Eq(f.DepartureAirport, depAirport)) &&
-                (arrAirport is null || Eq(f.ArrivalAirport, arrAirport)) &&
+                (depCountry is null || StringUtils.EqualsIgnoreCase(f.DepartureCountry, depCountry)) &&
+                (dstCountry is null || StringUtils.EqualsIgnoreCase(f.DestinationCountry, dstCountry)) &&
+                (depAirport is null || StringUtils.EqualsIgnoreCase(f.DepartureAirport, depAirport)) &&
+                (arrAirport is null || StringUtils.EqualsIgnoreCase(f.ArrivalAirport, arrAirport)) &&
                 (!depDate.HasValue || DateOnly.FromDateTime(depUtc) == depDate.Value);
         }
     }
