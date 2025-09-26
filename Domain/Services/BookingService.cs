@@ -185,11 +185,11 @@ public class BookingService(
         var firstName = StringUtils.Normalize(q.PassengerFirstName);
         var lastName = StringUtils.Normalize(q.PassengerLastName);
         var flightNumber = StringUtils.Normalize(q.FlightNumber);
-        var depCountry = StringUtils.Normalize(q.DepartureCountry);
-        var dstCountry = StringUtils.Normalize(q.DestinationCountry);
-        var depAirport = StringUtils.Normalize(q.DepartureAirport);
-        var arrAirport = StringUtils.Normalize(q.ArrivalAirport);
-        var depDate = q.DepartureDateUtc;
+        var departureCountry = StringUtils.Normalize(q.DepartureCountry);
+        var destinationCountry = StringUtils.Normalize(q.DestinationCountry);
+        var departureAirport = StringUtils.Normalize(q.DepartureAirport);
+        var arrivalAirport = StringUtils.Normalize(q.ArrivalAirport);
+        var departureDate = q.DepartureDateUtc;
         var wantedClass = q.Class;
         var maxPrice = q.MaxPrice;
 
@@ -226,7 +226,7 @@ public class BookingService(
 
         bool BookingMatchesQuery(Booking b, Flight f, Passenger p)
         {
-            var depUtc = f.DepartureDate.ToUniversalTime();
+            var departureUtc = f.DepartureDate.ToUniversalTime();
 
             return
                 (firstName is null || StringUtils.EqualsIgnoreCase(p.FirstName, firstName)) &&
@@ -234,11 +234,11 @@ public class BookingService(
                 (flightNumber is null || StringUtils.EqualsIgnoreCase(f.FlightNumber, flightNumber)) &&
                 (wantedClass is null || b.Class == wantedClass) &&
                 (!maxPrice.HasValue || b.Price <= maxPrice.Value) &&
-                (depCountry is null || StringUtils.EqualsIgnoreCase(f.DepartureCountry, depCountry)) &&
-                (dstCountry is null || StringUtils.EqualsIgnoreCase(f.DestinationCountry, dstCountry)) &&
-                (depAirport is null || StringUtils.EqualsIgnoreCase(f.DepartureAirport, depAirport)) &&
-                (arrAirport is null || StringUtils.EqualsIgnoreCase(f.ArrivalAirport, arrAirport)) &&
-                (!depDate.HasValue || DateOnly.FromDateTime(depUtc) == depDate.Value);
+                (departureCountry is null || StringUtils.EqualsIgnoreCase(f.DepartureCountry, departureCountry)) &&
+                (destinationCountry is null || StringUtils.EqualsIgnoreCase(f.DestinationCountry, destinationCountry)) &&
+                (departureAirport is null || StringUtils.EqualsIgnoreCase(f.DepartureAirport, departureAirport)) &&
+                (arrivalAirport is null || StringUtils.EqualsIgnoreCase(f.ArrivalAirport, arrivalAirport)) &&
+                (!departureDate.HasValue || DateOnly.FromDateTime(departureUtc) == departureDate.Value);
         }
     }
 

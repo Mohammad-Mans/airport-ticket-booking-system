@@ -15,11 +15,11 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
         var flights = await flightRepo.GetAllAsync();
         var classes = await classRepo.GetAllAsync();
 
-        var depCountry = StringUtils.Normalize(q.DepartureCountry);
-        var dstCountry = StringUtils.Normalize(q.DestinationCountry);
-        var depAirport = StringUtils.Normalize(q.DepartureAirport);
-        var arrAirport = StringUtils.Normalize(q.ArrivalAirport);
-        var depDate = q.DepartureDateUtc;
+        var departureCountry = StringUtils.Normalize(q.DepartureCountry);
+        var destinationCountry = StringUtils.Normalize(q.DestinationCountry);
+        var departureAirport = StringUtils.Normalize(q.DepartureAirport);
+        var arrivalAirport = StringUtils.Normalize(q.ArrivalAirport);
+        var departureDate = q.DepartureDateUtc;
         var requireSeats = q.OnlyWithSeats;
         var wantedClass = q.Class;
         var maxPrice = q.MaxPrice;
@@ -47,11 +47,11 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
         return results;
 
         bool FlightMatchesQuery(Flight f) =>
-            (depCountry is null || StringUtils.EqualsIgnoreCase(f.DepartureCountry, depCountry)) &&
-            (dstCountry is null || StringUtils.EqualsIgnoreCase(f.DestinationCountry, dstCountry)) &&
-            (depAirport is null || StringUtils.EqualsIgnoreCase(f.DepartureAirport, depAirport)) &&
-            (arrAirport is null || StringUtils.EqualsIgnoreCase(f.ArrivalAirport, arrAirport)) &&
-            (!depDate.HasValue || DateOnly.FromDateTime(f.DepartureDate.ToUniversalTime()) == depDate.Value);
+            (departureCountry is null || StringUtils.EqualsIgnoreCase(f.DepartureCountry, departureCountry)) &&
+            (destinationCountry is null || StringUtils.EqualsIgnoreCase(f.DestinationCountry, destinationCountry)) &&
+            (departureAirport is null || StringUtils.EqualsIgnoreCase(f.DepartureAirport, departureAirport)) &&
+            (arrivalAirport is null || StringUtils.EqualsIgnoreCase(f.ArrivalAirport, arrivalAirport)) &&
+            (!departureDate.HasValue || DateOnly.FromDateTime(f.DepartureDate.ToUniversalTime()) == departureDate.Value);
 
         bool ClassMatchesQuery(FlightClass c) =>
             (!requireSeats || c.SeatsAvailable > 0) &&
@@ -154,26 +154,26 @@ public class FlightService(IFlightRepository flightRepo, IFlightClassRepository 
     private static Flight ParseFlightCore(string[] p)
     {
         var flightNumber = Require(p[0], "FlightNumber");
-        var depAirport = Require(p[1], "DepartureAirport");
-        var depCountry = Require(p[2], "DepartureCountry");
-        var depUtc = ParsingUtils.ParseUtc(p[3], "DepartureDate");
-        var arrAirport = Require(p[4], "ArrivalAirport");
-        var dstCountry = Require(p[5], "DestinationCountry");
-        var arrUtc = ParsingUtils.ParseUtc(p[6], "ArrivalDate");
+        var departureAirport = Require(p[1], "DepartureAirport");
+        var departureCountry = Require(p[2], "DepartureCountry");
+        var departureUtc = ParsingUtils.ParseUtc(p[3], "DepartureDate");
+        var arrivalAirport = Require(p[4], "ArrivalAirport");
+        var destinationCountry = Require(p[5], "DestinationCountry");
+        var arrivalUtc = ParsingUtils.ParseUtc(p[6], "ArrivalDate");
 
-        if (arrUtc <= depUtc)
+        if (arrivalUtc <= departureUtc)
             throw new ArgumentException("ArrivalDate must be after DepartureDate.");
 
         return new Flight
         {
             Id = Guid.NewGuid(),
             FlightNumber = flightNumber,
-            DepartureAirport = depAirport,
-            DepartureCountry = depCountry,
-            ArrivalAirport = arrAirport,
-            DestinationCountry = dstCountry,
-            DepartureDate = depUtc,
-            ArrivalDate = arrUtc
+            DepartureAirport = departureAirport,
+            DepartureCountry = departureCountry,
+            ArrivalAirport = arrivalAirport,
+            DestinationCountry = destinationCountry,
+            DepartureDate = departureUtc,
+            ArrivalDate = arrivalUtc
         };
     }
 

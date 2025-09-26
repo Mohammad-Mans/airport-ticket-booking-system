@@ -38,11 +38,11 @@ public class ManagerMenu(IFlightService flightService, IBookingService bookingSe
         var firstName = ConsolePrompts.Optional("Passenger first name: ");
         var lastName = ConsolePrompts.Optional("Passenger last name: ");
         var flightNumber = ConsolePrompts.Optional("Flight number: ");
-        var depCountry = ConsolePrompts.Optional("Departure country: ");
-        var dstCountry = ConsolePrompts.Optional("Destination country: ");
-        var depAirport = ConsolePrompts.Optional("Departure airport: ");
-        var arrAirport = ConsolePrompts.Optional("Arrival airport: ");
-        var depDate = ConsolePrompts.DateOnlyOptional("Departure date (UTC, dd-MM-yyyy): ");
+        var departureCountry = ConsolePrompts.Optional("Departure country: ");
+        var destinationCountry = ConsolePrompts.Optional("Destination country: ");
+        var departureAirport = ConsolePrompts.Optional("Departure airport: ");
+        var arrivalAirport = ConsolePrompts.Optional("Arrival airport: ");
+        var departureDate = ConsolePrompts.DateOnlyOptional("Departure date (UTC, dd-MM-yyyy): ");
         var travelClass = ConsolePrompts.ClassOptional("Class (Economy/Business/First): ");
         var maxPrice = ConsolePrompts.DecimalOptional("Max price: ");
 
@@ -51,11 +51,11 @@ public class ManagerMenu(IFlightService flightService, IBookingService bookingSe
             PassengerFirstName = firstName,
             PassengerLastName = lastName,
             FlightNumber = flightNumber,
-            DepartureCountry = depCountry,
-            DestinationCountry = dstCountry,
-            DepartureAirport = depAirport,
-            ArrivalAirport = arrAirport,
-            DepartureDateUtc = depDate,
+            DepartureCountry = departureCountry,
+            DestinationCountry = destinationCountry,
+            DepartureAirport = departureAirport,
+            ArrivalAirport = arrivalAirport,
+            DepartureDateUtc = departureDate,
             Class = travelClass,
             MaxPrice = maxPrice
         };
