@@ -8,18 +8,6 @@ namespace ATBS.Data.Repositories;
 public class BookingRepository(string filePath)
     : BaseCsvRepository<Booking>(filePath), IBookingRepository
 {
-    private static readonly string[] ColumnNames =
-    [
-        nameof(Booking.Id),
-        nameof(Booking.FlightId),
-        nameof(Booking.PassengerId),
-        nameof(Booking.Price),
-        nameof(Booking.Class),
-        nameof(Booking.Status),
-        nameof(Booking.CreatedAt)
-    ];
-
-    protected override string HeadersRow => string.Join(",", ColumnNames);
 
     public async Task<IReadOnlyList<Booking>> GetAllAsync()
         => await ReadAllAsync();

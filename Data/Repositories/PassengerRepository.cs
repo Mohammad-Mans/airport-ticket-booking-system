@@ -6,15 +6,6 @@ namespace ATBS.Data.Repositories;
 
 public class PassengerRepository(string filePath) : BaseCsvRepository<Passenger>(filePath), IPassengerRepository
 {
-    private static readonly string[] ColumnNames =
-    [
-        nameof(Passenger.Id),
-        nameof(Passenger.FirstName),
-        nameof(Passenger.LastName),
-        nameof(Passenger.Balance)
-    ];
-
-    protected override string HeadersRow => string.Join(",", ColumnNames);
 
     public async Task<Passenger?> GetByIdAsync(Guid id)
     {

@@ -8,16 +8,6 @@ namespace ATBS.Data.Repositories;
 public class FlightClassRepository(string filePath)
     : BaseCsvRepository<FlightClass>(filePath), IFlightClassRepository
 {
-    private static readonly string[] ColumnNames =
-    [
-        nameof(FlightClass.FlightId),
-        nameof(FlightClass.Class),
-        nameof(FlightClass.Price),
-        nameof(FlightClass.CapacityTotal),
-        nameof(FlightClass.SeatsAvailable)
-    ];
-
-    protected override string HeadersRow => string.Join(",", ColumnNames);
 
     public async Task<IReadOnlyList<FlightClass>> GetAllAsync() => await ReadAllAsync();
 

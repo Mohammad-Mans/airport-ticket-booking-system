@@ -1,8 +1,19 @@
+using System.Reflection;
+
 namespace ATBS.Data.Repositories;
 
 public abstract class BaseCsvRepository<T> where T : class
 {
     protected readonly string _filePath;
+    private static readonly string[] _columnNames;
+
+    static BaseCsvRepository()
+    {
+        _columnNames = typeof(T)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Select(p => p.Name)
+            .ToArray();
+    }
 
     protected BaseCsvRepository(string filePath)
     {
@@ -10,7 +21,7 @@ public abstract class BaseCsvRepository<T> where T : class
         EnsureFileExists();
     }
 
-    protected abstract string HeadersRow { get; }
+    protected string HeadersRow => string.Join(",", _columnNames);
     protected abstract T Parse(string line);
     protected abstract string Serialize(T item);
 
