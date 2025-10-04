@@ -1,14 +1,25 @@
-﻿namespace ATBS;
+﻿using ATBS.API.ConsoleUI;
+using ATBS.Data.Repositories;
+using ATBS.Domain.Services;
+using ATBS.Utils;
+
+namespace ATBS;
 
 class Program
 {
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
-        Console.WriteLine("=================================");
-        Console.WriteLine("   Airport Ticket Booking System  ");
-        Console.WriteLine("=================================");
-        Console.WriteLine("1. Passenger");
-        Console.WriteLine("2. Manager");
-        Console.WriteLine("0. Exit");
+        var passengerRepository = new PassengerRepository(FilePaths.PassengerFilePath);
+        var flightRepository = new FlightRepository(FilePaths.FlightFilePath);
+        var flightClassRepository = new FlightClassRepository(FilePaths.FlightClassFilePath);
+        var bookingRepository = new BookingRepository(FilePaths.BookingFilePath);
+
+        var passengerService = new PassengerService(passengerRepository);
+        var flightService = new FlightService(flightRepository, flightClassRepository);
+        var bookingService = new BookingService(bookingRepository, passengerRepository, flightRepository,
+            flightClassRepository);
+
+        var mainMenu = new MainMenu(passengerService, flightService, bookingService);
+        await mainMenu.RunAsync();
     }
 }
