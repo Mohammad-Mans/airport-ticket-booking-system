@@ -1,4 +1,4 @@
-namespace ATBS.API.Flights.Views;
+namespace ATBS.API.Flights.DTOs;
 
 public sealed class FlightImportResult
 {

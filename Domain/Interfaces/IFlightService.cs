@@ -1,5 +1,5 @@
 using ATBS.API.Flights.Queries;
-using ATBS.API.Flights.Views;
+using ATBS.API.Flights.DTOs;
 
 namespace ATBS.Domain.Interfaces;
 

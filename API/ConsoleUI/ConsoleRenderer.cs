@@ -1,6 +1,5 @@
-using ATBS.API.Bookings.Views;
-using ATBS.API.Flights.Views;
-using ATBS.Domain.Interfaces;
+using ATBS.API.Bookings.DTOs;
+using ATBS.API.Flights.DTOs;
 
 namespace ATBS.API.ConsoleUI;
 

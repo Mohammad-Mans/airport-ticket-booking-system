@@ -1,6 +1,6 @@
 using ATBS.Domain.Entities;
 
-namespace ATBS.API.Bookings.Views;
+namespace ATBS.API.Bookings.DTOs;
 
 public sealed record BookingView(
     Booking Booking,
